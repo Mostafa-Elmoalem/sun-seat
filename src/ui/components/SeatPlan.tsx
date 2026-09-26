@@ -98,7 +98,6 @@ export function SeatPlan({ vehicle, verdict, step, selectedSeatId, onSelect, lan
   const cx = L.width / 2;
   const cy = L.body.y + L.body.h / 2;
   const { w: sw, h: sh } = L.seat;
-  const labelY = L.body.y + L.body.h * 0.22;
 
   const selected = vehicle.seats.find((s) => s.id === selectedSeatId) ?? null;
   const selectedMinutes = selected ? minutesById.get(selected.id) ?? 0 : 0;
@@ -111,7 +110,7 @@ export function SeatPlan({ vehicle, verdict, step, selectedSeatId, onSelect, lan
       </div>
 
       <div className="seat-plan">
-        <svg viewBox={`-52 -46 ${L.width + 104} ${L.height + 80}`} role="group" aria-label={c.seatPlanHint}>
+        <svg viewBox={`-52 -46 ${L.width + 104} ${L.height + 80}`} direction="ltr" role="group" aria-label={c.seatPlanHint}>
           <defs>
             {[1, 2, 3].map((lvl) => (
               <pattern key={lvl} id={`hatch-${lvl}`} width={[0, 9, 6, 4][lvl]} height={[0, 9, 6, 4][lvl]} patternUnits="userSpaceOnUse" patternTransform="rotate(45)">
@@ -138,15 +137,18 @@ export function SeatPlan({ vehicle, verdict, step, selectedSeatId, onSelect, lan
           <line x1={L.body.x + L.body.w + 5} y1={L.door.y0} x2={L.body.x + L.body.w + 5} y2={L.door.y1} stroke="#1b2f7c" strokeWidth="2" strokeDasharray="5 4" />
 
           {/* Side labels */}
-          <text x={cx} y={18} textAnchor="middle" fontSize="13" fontWeight="600" fill="#555c66">
+          <text x={cx} y={L.body.y - 22} textAnchor="middle" fontSize="12" fontWeight="600" fill="#555c66">
             {c.front}
           </text>
-          <text x={L.body.x - 16} y={labelY} textAnchor="middle" fontSize="13" fontWeight="600" fill="#1b2f7c" transform={`rotate(-90 ${L.body.x - 16} ${labelY})`}>
+          {/* Side names sit level above each flank so they read without tilting the head. */}
+          <text x={L.body.x - 4} y={L.body.y - 22} textAnchor="start" fontSize="13" fontWeight="700" fill="#1b2f7c">
             {sideName('left', lang)}
           </text>
-          <text x={L.body.x + L.body.w + 18} y={labelY} textAnchor="middle" fontSize="13" fontWeight="600" fill="#1b2f7c" transform={`rotate(90 ${L.body.x + L.body.w + 18} ${labelY})`}>
+          <text x={L.body.x + L.body.w + 4} y={L.body.y - 22} textAnchor="end" fontSize="13" fontWeight="700" fill="#1b2f7c">
             {sideName('right', lang)}
           </text>
+          <path d={`M ${L.body.x + 6} ${L.body.y - 16} v 10`} stroke="#1b2f7c" strokeWidth="1.5" />
+          <path d={`M ${L.body.x + L.body.w - 6} ${L.body.y - 16} v 10`} stroke="#1b2f7c" strokeWidth="1.5" />
 
           {/* Driver */}
           <g aria-hidden="true">

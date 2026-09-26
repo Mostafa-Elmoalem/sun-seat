@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { useTripStore, warmPlaces } from './store/trip-store.ts';
+import { tripStore, useTripStore, warmPlaces } from './store/trip-store.ts';
 import { COPY } from './i18n/copy.ts';
 import { TripForm } from './components/TripForm.tsx';
 import { ResultView } from './components/ResultView.tsx';
@@ -21,6 +21,12 @@ export function App() {
     if (import.meta.env.PROD) registerServiceWorker((activate) => setUpdate(() => activate));
     if (window.location.search) void hydrateFromQuery(window.location.search);
     warmPlaces();
+    // Phone back button on the result screen: return to the form.
+    const onPop = () => {
+      if (!window.location.search && tripStore.getState().screen === 'result') tripStore.setState({ screen: 'input', scrubIndex: null });
+    };
+    window.addEventListener('popstate', onPop);
+    return () => window.removeEventListener('popstate', onPop);
   }, [hydrateFromQuery]);
 
   useEffect(() => {

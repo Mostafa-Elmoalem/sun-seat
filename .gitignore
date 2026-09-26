@@ -40,3 +40,4 @@ Thumbs.db
 .impeccable/tmp/
 .impeccable/decision/
 scripts/.cache/
+.impeccable/questions/

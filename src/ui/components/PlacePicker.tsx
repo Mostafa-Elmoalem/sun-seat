@@ -5,6 +5,7 @@ import { normalizeArabic } from '../../core/geometry/normalize-arabic.ts';
 import { calculateDistanceKm } from '../../core/geometry/bearing.ts';
 import { COPY, placeKindLabel, type AppLanguage } from '../i18n/copy.ts';
 import { IconBack, IconClose, IconLocate, IconSearch, PlaceKindIcon } from './Icons.tsx';
+import { locateMe } from '../geo.ts';
 
 interface PlacePickerProps {
   field: 'from' | 'to';
@@ -91,30 +92,8 @@ export function PlacePicker({ field, lang, recentPlaces, onPick, onClose }: Plac
   const onlineExtra = online.results.filter((p) => !isDuplicate(p, local)).slice(0, 8);
 
   const locate = () => {
-    if (!navigator.geolocation) {
-      setGps('denied');
-      return;
-    }
     setGps('locating');
-    navigator.geolocation.getCurrentPosition(
-      (pos) => {
-        const { latitude: lat, longitude: lng } = pos.coords;
-        const near = defaultPlacesRepository.findNearest(lat, lng, 8);
-        const nearName = near ? placeName(near.place, 'ar') : null;
-        const nearNameEn = near ? placeName(near.place, 'en') : null;
-        onPick({
-          id: 'gps',
-          nameAr: COPY.ar.myLocationName,
-          nameEn: COPY.en.myLocationName,
-          contextAr: nearName ? COPY.ar.gpsNear(nearName) : undefined,
-          contextEn: nearNameEn ? COPY.en.gpsNear(nearNameEn) : undefined,
-          location: { lat, lng },
-          kind: 'gps'
-        });
-      },
-      () => setGps('denied'),
-      { enableHighAccuracy: false, timeout: 10_000, maximumAge: 120_000 }
-    );
+    locateMe().then(onPick, () => setGps('denied'));
   };
 
   const firstResult = local[0] ?? onlineExtra[0];

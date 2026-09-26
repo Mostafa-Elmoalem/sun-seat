@@ -44,6 +44,13 @@ export const IconSwap = (p: IconProps) => (
   </Svg>
 );
 
+/** Trip direction arrow; points the way text reads (left in Arabic, right in English). */
+export const IconTripArrow = ({ rtl, ...p }: IconProps & { rtl: boolean }) => (
+  <Svg {...p} style={{ width: 16, height: 16, verticalAlign: '-2px', ...(p.style ?? {}) }}>
+    {rtl ? <path d="M19 12H5m5-5-5 5 5 5" /> : <path d="M5 12h14m-5-5 5 5-5 5" />}
+  </Svg>
+);
+
 export const IconBack = (p: IconProps) => (
   <Svg {...p}>
     <path d="M9 5l7 7-7 7" />

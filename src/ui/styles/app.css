@@ -120,7 +120,7 @@ button {
 }
 
 input::placeholder {
-  color: var(--pencil);
+  color: var(--graphite);
   opacity: 1;
 }
 
@@ -336,7 +336,7 @@ input::placeholder {
 }
 
 .line-field-value.is-empty {
-  color: var(--pencil);
+  color: var(--graphite);
   font-weight: 400;
   font-size: 17px;
 }
@@ -446,7 +446,7 @@ input::placeholder {
 
 .pill {
   flex: none;
-  min-height: 44px;
+  min-height: 48px;
   padding: 0 16px;
   border-radius: 999px;
   border: 1.5px solid var(--pencil-light);
@@ -774,15 +774,15 @@ input::placeholder {
 .verdict-mark {
   position: relative;
   display: inline-block;
-  padding: 0 6px;
+  padding: 0 12px;
   white-space: nowrap;
 }
 
 .verdict-mark-ring {
   position: absolute;
-  inset: -14% -3% -18% -3%;
-  width: 106%;
-  height: 132%;
+  inset: -20% -2% -24% -2%;
+  width: 104%;
+  height: 144%;
   overflow: visible;
   pointer-events: none;
 }
@@ -849,7 +849,7 @@ input::placeholder {
 
 .side-row {
   display: grid;
-  grid-template-columns: 96px 1fr auto;
+  grid-template-columns: 96px 1fr 8.5em;
   align-items: center;
   gap: 10px;
   font-size: 15px;
@@ -1035,6 +1035,59 @@ input::placeholder {
   width: 100%;
 }
 
+.ruler-track {
+  position: relative;
+}
+
+.ruler-track .ruler-range {
+  position: absolute;
+  inset: 0;
+  height: 100%;
+}
+
+.ruler-track .ruler-range::-webkit-slider-runnable-track {
+  background: transparent;
+  height: 100%;
+}
+
+.ruler-track .ruler-range::-webkit-slider-thumb {
+  margin-top: 0;
+}
+
+.ruler-track .ruler-range::-moz-range-track {
+  background: transparent;
+}
+
+.locate-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  align-self: flex-start;
+  min-height: 48px;
+  padding: 0 16px 0 12px;
+  border-radius: 999px;
+  border: 1.5px solid var(--ink);
+  color: var(--ink);
+  font-size: 15px;
+  font-weight: 600;
+  background: var(--paper);
+  transition: background-color 160ms var(--ease-out);
+}
+
+.locate-btn:hover {
+  background: var(--ink-wash);
+}
+
+.locate-btn[disabled] {
+  cursor: progress;
+  opacity: 0.7;
+}
+
+.locate-error {
+  font-size: 14px;
+  color: var(--red);
+}
+
 .ruler svg {
   display: block;
   width: 100%;
@@ -1191,7 +1244,7 @@ input::placeholder {
 }
 
 .three-toolbar .pill {
-  min-height: 42px;
+  min-height: 48px;
   font-size: 14px;
   padding: 0 14px;
 }

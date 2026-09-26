@@ -27,17 +27,8 @@ function sunriseText(verdict: TripExposureVerdict, lang: AppLanguage): string {
   return '';
 }
 
-export function Verdict({
-  verdict,
-  vehicle,
-  weather,
-  lang
-}: {
-  verdict: TripExposureVerdict;
-  vehicle: VehicleProfile;
-  weather: WeatherData | null;
-  lang: AppLanguage;
-}) {
+/** The answer: the headline circled in red and one sentence of why. */
+export function Verdict({ verdict, lang }: { verdict: TripExposureVerdict; lang: AppLanguage }) {
   const c = COPY[lang];
   const { status, recommendedSide, sides, tripMinutes } = verdict;
   const head = verdictHeadline(status, recommendedSide, lang);
@@ -68,11 +59,6 @@ export function Verdict({
     sub = c.subNight(sunriseText(verdict, lang));
   }
 
-  const showConfidence = status !== 'NIGHT' && verdict.sensitivity.scenarios.length > 0;
-  const maxSide = Math.max(sides.leftSunMinutes, sides.rightSunMinutes, 1);
-  const scale = Math.max(tripMinutes, maxSide);
-  const firstTime = verdict.timeline[0];
-  const lastTime = verdict.timeline[verdict.timeline.length - 1];
 
   return (
     <section className="verdict" aria-live="polite" data-testid="verdict" data-status={status} data-side={recommendedSide}>
@@ -86,27 +72,52 @@ export function Verdict({
       </h1>
       <p className="verdict-sub" dangerouslySetInnerHTML={{ __html: sub }} />
 
-      {status !== 'NIGHT' && (
-        <div className="sides" style={{ marginTop: 18 }} aria-label={lang === 'ar' ? 'الشمس على كل جنب' : 'Sun on each side'}>
-          {(['left', 'right'] as const).map((side) => {
-            const minutes = side === 'left' ? sides.leftSunMinutes : sides.rightSunMinutes;
-            return (
-              <div key={side} className={`side-row${recommendedSide === side ? ' is-best' : ''}`} data-testid={`side-${side}`}>
-                <span className="side-row-name">{sideName(side, lang)}</span>
-                <span className="side-row-track" aria-hidden="true">
-                  <span className="side-row-fill" style={{ width: `${Math.min(100, (minutes / scale) * 100)}%` }} />
-                </span>
-                <span className="side-row-mins">{formatDuration(minutes, lang)}</span>
-              </div>
-            );
-          })}
-          <p className="hint">
-            {lang === 'ar'
-              ? `دقايق الشمس على شبابيك كل جنب، من ${firstTime ? formatTime(firstTime.timeMs, lang) : ''} لـ ${lastTime ? formatTime(lastTime.timeMs, lang) : ''}.`
-              : `Minutes of sun on each side's windows, ${firstTime ? formatTime(firstTime.timeMs, lang) : ''} to ${lastTime ? formatTime(lastTime.timeMs, lang) : ''}.`}
-          </p>
-        </div>
-      )}
+    </section>
+  );
+}
+
+/** Sun minutes per side, measured against the trip, plus the honest caveats. */
+export function SideComparison({
+  verdict,
+  vehicle,
+  weather,
+  lang
+}: {
+  verdict: TripExposureVerdict;
+  vehicle: VehicleProfile;
+  weather: WeatherData | null;
+  lang: AppLanguage;
+}) {
+  const c = COPY[lang];
+  const { status, recommendedSide, sides, tripMinutes } = verdict;
+  if (status === 'NIGHT') return null;
+  const showConfidence = verdict.sensitivity.scenarios.length > 0;
+  const scale = Math.max(tripMinutes, sides.leftSunMinutes, sides.rightSunMinutes, 1);
+  const firstTime = verdict.timeline[0];
+  const lastTime = verdict.timeline[verdict.timeline.length - 1];
+  const span = `${firstTime ? formatTime(firstTime.timeMs, lang) : ''} ${lang === 'ar' ? 'لـ' : 'to'} ${lastTime ? formatTime(lastTime.timeMs, lang) : ''}`;
+
+  return (
+    <section className="block" data-testid="side-comparison">
+      <div className="sides" aria-label={lang === 'ar' ? 'الشمس على كل جنب' : 'Sun on each side'}>
+        {(['left', 'right'] as const).map((side) => {
+          const minutes = side === 'left' ? sides.leftSunMinutes : sides.rightSunMinutes;
+          return (
+            <div key={side} className={`side-row${recommendedSide === side ? ' is-best' : ''}`} data-testid={`side-${side}`}>
+              <span className="side-row-name">{sideName(side, lang)}</span>
+              <span className="side-row-track" aria-hidden="true">
+                <span className="side-row-fill" style={{ width: `${Math.min(100, (minutes / scale) * 100)}%` }} />
+              </span>
+              <span className="side-row-mins">{formatDuration(minutes, lang)}</span>
+            </div>
+          );
+        })}
+        <p className="hint">
+          {lang === 'ar'
+            ? `متوسط دقايق الشمس على كرسي الشباك في كل جنب، من ${span}.`
+            : `Average minutes of sun on a window seat on each side, ${span}.`}
+        </p>
+      </div>
 
       {showConfidence && (
         <p className="verdict-note" data-testid="confidence">
@@ -114,7 +125,7 @@ export function Verdict({
           <span>{c.confidence[verdict.sensitivity.confidence]}</span>
         </p>
       )}
-      {weather && weather.cloudCoverPct >= 35 && status !== 'NIGHT' && (
+      {weather && weather.cloudCoverPct >= 35 && (
         <p className="verdict-note">
           <IconInfo />
           <span>{c.weatherCloudy(Math.round(weather.cloudCoverPct))}</span>

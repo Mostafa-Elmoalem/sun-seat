@@ -31,11 +31,11 @@ const COLORS = {
   stripe: 0x1b2f7c,
   trim: 0x2a2e33,
   glass: 0x9fc3dd,
-  seat: 0xa0444a,
-  seatBus: 0x3d52a0,
-  passenger: 0x8e9ab4,
+  seat: 0xc9d3e8,
+  seatBus: 0xc9d3e8,
+  passenger: 0x9aa6bd,
   you: 0x1b2f7c,
-  floor: 0x9aa0a8,
+  floor: 0xe3e8ef,
   asphalt: 0x8d939a,
   road: 0xf4f4f0,
   tyre: 0x1c1d20,
@@ -176,6 +176,9 @@ export class VehicleScene {
   private fillLight: THREE.DirectionalLight;
   private hemi: THREE.HemisphereLight;
   private lastSun: SunState | null = null;
+  /** Flat sun disc and rays on the ground, the 2D plan's sun marker, shown from above. */
+  private groundSun = new THREE.Group();
+  private bestRings = new THREE.Group();
   private sunMesh: THREE.Mesh;
   private sunPath: THREE.Line;
   private northMarker: THREE.Group;
@@ -254,6 +257,8 @@ export class VehicleScene {
 
     this.northMarker = new THREE.Group();
     this.scene.add(this.northMarker);
+    this.buildGroundSun();
+    this.scene.add(this.bestRings);
 
     this.buildGround();
     this.buildBody();
@@ -587,6 +592,46 @@ export class VehicleScene {
     }
   }
 
+  private buildGroundSun(): void {
+    const disc = new THREE.Mesh(this.track(new THREE.CircleGeometry(0.42, 32)), this.track(new THREE.MeshBasicMaterial({ color: COLORS.sun })));
+    disc.rotation.x = -Math.PI / 2;
+    disc.position.y = 0.03;
+    const rim = new THREE.Mesh(this.track(new THREE.RingGeometry(0.42, 0.5, 32)), this.track(new THREE.MeshBasicMaterial({ color: 0xf5b800 })));
+    rim.rotation.x = -Math.PI / 2;
+    rim.position.y = 0.031;
+    this.groundSun.add(disc, rim);
+    const rayMat = this.track(new THREE.MeshBasicMaterial({ color: 0xf5b800 }));
+    const shaft = this.track(new THREE.BoxGeometry(0.07, 0.01, 0.8));
+    const head = this.track(new THREE.ConeGeometry(0.13, 0.26, 3));
+    for (const off of [-0.7, 0, 0.7]) {
+      const ray = new THREE.Group();
+      const body = new THREE.Mesh(shaft, rayMat);
+      body.position.set(off, 0.03, -1.05);
+      const tip = new THREE.Mesh(head, rayMat);
+      tip.rotation.x = -Math.PI / 2;
+      tip.position.set(off, 0.03, -1.55);
+      ray.add(body, tip);
+      this.groundSun.add(ray);
+    }
+    this.scene.add(this.groundSun);
+  }
+
+  /** Red rings around the recommended seats, the same mark as the 2D plan. */
+  setBestSeats(ids: number[]): void {
+    this.bestRings.clear();
+    const geo = this.track(new THREE.TorusGeometry(0.33, 0.028, 8, 40));
+    const mat = this.track(new THREE.MeshBasicMaterial({ color: 0xcc1f37 }));
+    for (const id of ids) {
+      const seat = this.vehicle.seats.find((x) => x.id === id);
+      if (!seat) continue;
+      const ring = new THREE.Mesh(geo, mat);
+      ring.rotation.x = -Math.PI / 2;
+      ring.position.copy(this.toThree(seat.position.x, seat.position.y - 0.08, seat.position.z + 0.02));
+      this.bestRings.add(ring);
+    }
+    this.invalidate();
+  }
+
   /* ---------- state ---------- */
 
   setSun(sun: SunState): void {
@@ -604,14 +649,24 @@ export class VehicleScene {
     // Warmer, weaker light near the horizon.
     const el = Math.max(0, sun.elevationDeg);
     const warm = Math.min(1, el / 25);
-    this.sunLight.color.setRGB(1, 0.78 + 0.2 * warm, 0.55 + 0.4 * warm);
-    this.sunLight.intensity = up ? 1.4 + 2.2 * Math.min(1, el / 35) : 0;
+    this.sunLight.color.setRGB(1, 0.8 + 0.16 * warm, 0.5 + 0.3 * warm);
+    this.sunLight.intensity = up ? 1.8 + 2.6 * Math.min(1, el / 35) : 0;
+
+    // Ground sun marker: outside the vehicle on the sun's side, rays pointing at the cabin.
+    const flat = new THREE.Vector3(sun.ux, 0, -sun.uy);
+    this.groundSun.visible = up && flat.lengthSq() > 1e-4 && this.view === 'top';
+    if (flat.lengthSq() > 1e-4) {
+      flat.normalize();
+      const reach = Math.abs(flat.x) * (this.vehicle.dimensions.widthM / 2) + Math.abs(flat.z) * this.halfL + 2.2;
+      this.groundSun.position.copy(flat.clone().multiplyScalar(reach));
+      this.groundSun.rotation.y = Math.atan2(flat.x, flat.z);
+    }
     const sky = up
       ? new THREE.Color().setRGB(0.62 + 0.18 * (1 - warm), 0.74 + 0.05 * warm, 0.82 + 0.1 * warm)
       : new THREE.Color(0x1d2742);
     (this.scene.background as THREE.Color).copy(sky);
     this.scene.fog!.color.copy(sky);
-    this.hemi.intensity = up ? 0.75 : 0.35;
+    this.hemi.intensity = up ? 0.6 : 0.35;
     this.hemi.color.set(up ? 0xdfeaf7 : 0x3a4a7a);
 
     // Sun path arc for the day.
@@ -687,6 +742,8 @@ export class VehicleScene {
       m.depthWrite = view !== 'top';
     }
     this.seatLabels.forEach((l) => (l.visible = view === 'top'));
+    this.groundSun.visible = view === 'top' && !!this.lastSun && this.lastSun.elevationDeg > 0;
+    this.bestRings.visible = view !== 'seat';
     this.youGroup.visible = view !== 'seat' && this.selectedSeatId !== null;
 
     const c = this.controls;

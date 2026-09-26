@@ -3,12 +3,13 @@ import { useTripStore } from '../store/trip-store.ts';
 import { defaultVehicleRepository } from '../../core/vehicles/vehicle-repository.ts';
 import { COPY, verdictHeadline, type AppLanguage } from '../i18n/copy.ts';
 import { formatDay, formatTime } from '../format.ts';
-import { Verdict } from './Verdict.tsx';
+import { SideComparison, Verdict } from './Verdict.tsx';
+import { defaultFocusIndex } from '../focus.ts';
 import { SeatPlan } from './SeatPlan.tsx';
 import { TripRuler } from './TripRuler.tsx';
 import { RouteFigure } from './RouteFigure.tsx';
 import { HowItWorks } from './HowItWorks.tsx';
-import { IconChevronDown, IconCube, IconEdit, IconShare } from './Icons.tsx';
+import { IconChevronDown, IconCube, IconEdit, IconShare, IconTripArrow } from './Icons.tsx';
 
 const VehicleCanvas = lazy(() => import('../three/VehicleCanvas.tsx'));
 
@@ -36,6 +37,8 @@ export function ResultView({ onToast }: { onToast: (text: string) => void }) {
   if (!verdict || !route || !origin || !destination) return null;
 
   const step = s.scrubIndex !== null ? verdict.timeline[Math.min(s.scrubIndex, verdict.timeline.length - 1)] ?? null : null;
+  const focusIndex = defaultFocusIndex(verdict);
+  const shownStep = step ?? verdict.timeline[focusIndex] ?? null;
   const from = short(lang === 'ar' ? origin.nameAr : origin.nameEn);
   const to = short(lang === 'ar' ? destination.nameAr : destination.nameEn);
 
@@ -70,7 +73,7 @@ export function ResultView({ onToast }: { onToast: (text: string) => void }) {
           </button>
           <div className="trip-summary" data-testid="trip-summary">
             <p className="trip-summary-route">
-              {from} {lang === 'ar' ? '←' : '→'} {to}
+              {from} <IconTripArrow rtl={lang === 'ar'} /> {to}
             </p>
             <p className="trip-summary-time">
               {formatDay(s.departure, lang)} · {formatTime(s.departure, lang)} · {vehicle.type === 'bus' ? c.bus : c.microbus}
@@ -82,7 +85,7 @@ export function ResultView({ onToast }: { onToast: (text: string) => void }) {
           </button>
         </div>
 
-        <Verdict verdict={verdict} vehicle={vehicle} weather={s.weather} lang={lang} />
+        <Verdict verdict={verdict} lang={lang} />
 
         {bestLine && (
           <p className="teacher-note" data-testid="best-seats">
@@ -91,12 +94,14 @@ export function ResultView({ onToast }: { onToast: (text: string) => void }) {
         )}
 
         <SeatPlan vehicle={vehicle} verdict={verdict} step={step} selectedSeatId={s.selectedSeatId} onSelect={s.selectSeat} lang={lang} />
+
+        <SideComparison verdict={verdict} vehicle={vehicle} weather={s.weather} lang={lang} />
       </div>
 
       <div className="result-col">
-        <TripRuler verdict={verdict} scrubIndex={s.scrubIndex} onScrub={s.setScrub} lang={lang} />
+        <TripRuler verdict={verdict} scrubIndex={s.scrubIndex} focusIndex={focusIndex} onScrub={s.setScrub} lang={lang} />
 
-        <RouteFigure route={route} verdict={verdict} step={step} origin={origin} destination={destination} lang={lang} />
+        <RouteFigure route={route} verdict={verdict} step={shownStep} origin={origin} destination={destination} lang={lang} />
 
         <section className="block" data-testid="three-block">
           <div className="block-head">

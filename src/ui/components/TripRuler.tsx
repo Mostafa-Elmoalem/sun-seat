@@ -31,11 +31,14 @@ function tickStep(total: number): number {
 export function TripRuler({
   verdict,
   scrubIndex,
+  focusIndex,
   onScrub,
   lang
 }: {
   verdict: TripExposureVerdict;
   scrubIndex: number | null;
+  /** The moment the route figure and 3D show when nothing is being inspected. */
+  focusIndex: number;
   onScrub: (i: number | null) => void;
   lang: AppLanguage;
 }) {
@@ -48,7 +51,8 @@ export function TripRuler({
   };
   const first = timeline[0];
   const last = timeline[timeline.length - 1];
-  const current = scrubIndex !== null ? timeline[Math.min(scrubIndex, timeline.length - 1)] ?? null : null;
+  const shownIndex = Math.min(scrubIndex ?? focusIndex, timeline.length - 1);
+  const current = timeline[shownIndex] ?? null;
   const step = tickStep(tripMinutes);
 
   const ticks: number[] = [];
@@ -67,6 +71,7 @@ export function TripRuler({
       </div>
 
       <div className="ruler">
+        <div className="ruler-track">
         <svg viewBox={`0 0 ${W} ${H}`} aria-hidden="true" direction="ltr">
           {/* Night stretches: graphite wash */}
           {spans
@@ -109,13 +114,14 @@ export function TripRuler({
           type="range"
           min={0}
           max={Math.max(0, timeline.length - 1)}
-          value={scrubIndex ?? 0}
+          value={shownIndex}
           onChange={(e) => onScrub(Number(e.target.value))}
           aria-label={c.rulerHint}
           aria-valuetext={current ? `${formatTime(current.timeMs, lang)}، ${c.dir[current.sunSide]}` : undefined}
           dir={rtl ? 'rtl' : 'ltr'}
           data-testid="ruler-range"
         />
+        </div>
         <div className="ruler-now">
           <span>
             {c.departure} <b>{first ? formatTime(first.timeMs, lang) : ''}</b>
@@ -126,7 +132,7 @@ export function TripRuler({
         </div>
       </div>
 
-      {current ? (
+      {current && (
         <p className="verdict-note" data-testid="ruler-current" style={{ marginTop: 0 }}>
           <span>
             <b style={{ color: 'var(--ink)' }}>{formatTime(current.timeMs, lang)}</b>
@@ -135,9 +141,8 @@ export function TripRuler({
             {current.isNight ? '' : lang === 'ar' ? ` · ارتفاع الشمس ${Math.round(current.solarElevationDeg)}°` : ` · sun ${Math.round(current.solarElevationDeg)}° high`}
           </span>
         </p>
-      ) : (
-        <p className="hint">{c.rulerHint}</p>
       )}
+      {scrubIndex === null && <p className="hint">{c.rulerHint}</p>}
 
       {readable.length > 0 && (
         <ul className="span-list">

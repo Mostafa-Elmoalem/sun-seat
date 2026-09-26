@@ -4,7 +4,8 @@ import { useTripStore, roundToFiveMinutes } from '../store/trip-store.ts';
 import { COPY, type AppLanguage } from '../i18n/copy.ts';
 import { cairoParts, fromCairo, formatDay, formatTime } from '../format.ts';
 import { PlacePicker } from './PlacePicker.tsx';
-import { BusSilhouette, IconInfo, IconSwap, MicrobusSilhouette } from './Icons.tsx';
+import { BusSilhouette, IconInfo, IconLocate, IconSwap, IconTripArrow, MicrobusSilhouette } from './Icons.tsx';
+import { locateMe } from '../geo.ts';
 
 function PlaceLine({
   tag,
@@ -41,6 +42,17 @@ export function TripForm() {
   const c = COPY[s.lang];
   const [picker, setPicker] = useState<'from' | 'to' | null>(null);
   const [swapTurns, setSwapTurns] = useState(0);
+  const [gps, setGps] = useState<'idle' | 'locating' | 'denied'>('idle');
+  const useMyLocation = () => {
+    setGps('locating');
+    locateMe().then(
+      (p) => {
+        s.setOrigin(p);
+        setGps('idle');
+      },
+      () => setGps('denied')
+    );
+  };
 
   const parts = cairoParts(s.departure);
   const recentPlaces = useMemo(() => {
@@ -80,8 +92,8 @@ export function TripForm() {
                 onClick={() => void s.applyRecent(r)}
                 data-testid="recent-trip"
               >
-                {(s.lang === 'ar' ? r.origin.nameAr : r.origin.nameEn).replace(/^موقف /, '')}
-                {s.lang === 'ar' ? ' ← ' : ' → '}
+                {(s.lang === 'ar' ? r.origin.nameAr : r.origin.nameEn).replace(/^موقف /, '')}{' '}
+                <IconTripArrow rtl={s.lang === 'ar'} />{' '}
                 {(s.lang === 'ar' ? r.destination.nameAr : r.destination.nameEn).replace(/^موقف /, '')}
               </button>
             ))}
@@ -122,6 +134,14 @@ export function TripForm() {
           <IconSwap />
         </button>
       </section>
+
+      {s.origin?.kind !== 'gps' && (
+        <button type="button" className="locate-btn" onClick={useMyLocation} disabled={gps === 'locating'} data-testid="locate-btn">
+          <IconLocate />
+          {gps === 'locating' ? c.locating : c.useMyLocation}
+        </button>
+      )}
+      {gps === 'denied' && <p className="locate-error" role="alert">{c.gpsDenied}</p>}
 
       <section className="date-line" aria-label={c.when}>
         <p className="section-label">{c.when}</p>

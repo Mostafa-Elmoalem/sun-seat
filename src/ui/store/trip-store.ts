@@ -180,6 +180,7 @@ export const tripStore = createStore<TripState>((set, get) => ({
 
     // "Now" means the moment the rider taps, not when the page was opened.
     const departure = get().isNow ? roundToFiveMinutes(new Date()) : get().departure;
+    const wasOnForm = get().screen === 'input';
     set({ calculating: true, error: null, departure });
 
     const route = await defaultRoutesRepository.getRoute(origin, destination);
@@ -206,7 +207,10 @@ export const tripStore = createStore<TripState>((set, get) => ({
     });
 
     if (typeof window !== 'undefined') {
-      window.history.replaceState(null, '', serializeTripToQuery({ origin, destination, vehicleId, departure, lang }));
+      // Push a history entry so the phone's back button returns to the form instead of leaving the site.
+      const url = serializeTripToQuery({ origin, destination, vehicleId, departure, lang });
+      if (wasOnForm && !get().fromSharedLink) window.history.pushState({ screen: 'result' }, '', url);
+      else window.history.replaceState({ screen: 'result' }, '', url);
       window.scrollTo({ top: 0 });
     }
 
@@ -239,8 +243,12 @@ export const tripStore = createStore<TripState>((set, get) => ({
   setScrub: (scrubIndex) => set({ scrubIndex }),
   selectSeat: (selectedSeatId) => set({ selectedSeatId }),
   goToInput: () => {
-    set({ screen: 'input', scrubIndex: null });
-    if (typeof window !== 'undefined') window.history.replaceState(null, '', window.location.pathname);
+    const shared = get().fromSharedLink;
+    set({ screen: 'input', scrubIndex: null, fromSharedLink: false });
+    if (typeof window === 'undefined') return;
+    // A result we pushed: step back in history. A shared link landing: just clear the URL.
+    if (!shared && window.history.state?.screen === 'result' && window.history.length > 1) window.history.back();
+    else window.history.replaceState(null, '', window.location.pathname);
   }
 }));
 

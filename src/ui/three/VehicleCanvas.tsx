@@ -6,6 +6,7 @@ import { COPY, type AppLanguage } from '../i18n/copy.ts';
 import { formatTime, cairoParts, fromCairo } from '../format.ts';
 import { IconPause, IconPlay } from '../components/Icons.tsx';
 import { VehicleScene, type SunState, type ViewMode } from './VehicleScene.ts';
+import { defaultFocusIndex } from '../focus.ts';
 
 export interface VehicleCanvasProps {
   vehicle: VehicleProfile;
@@ -14,24 +15,6 @@ export interface VehicleCanvasProps {
   onScrub: (i: number | null) => void;
   selectedSeatId: number | null;
   lang: AppLanguage;
-}
-
-/** The step the 3D view shows when nothing is being inspected: the middle of the longest side-on stretch. */
-export function defaultFocusIndex(verdict: TripExposureVerdict): number {
-  const lateral = verdict.spans
-    .filter((s) => s.side === 'left' || s.side === 'right')
-    .sort((a, b) => b.endMinute - b.startMinute - (a.endMinute - a.startMinute))[0];
-  const target = lateral
-    ? (lateral.startMinute + lateral.endMinute) / 2
-    : (() => {
-        const day = verdict.timeline.filter((t) => !t.isNight);
-        return day[Math.floor(day.length / 2)]?.minuteOffset ?? 0;
-      })();
-  let best = 0;
-  verdict.timeline.forEach((t, i) => {
-    if (Math.abs(t.minuteOffset - target) < Math.abs((verdict.timeline[best]?.minuteOffset ?? 0) - target)) best = i;
-  });
-  return best;
 }
 
 function sunStateFor(step: TimelineStep): SunState {
@@ -96,6 +79,10 @@ export default function VehicleCanvas({ vehicle, verdict, scrubIndex, onScrub, s
   useEffect(() => {
     sceneRef.current?.setSelectedSeat(selectedSeatId);
   }, [selectedSeatId, vehicle]);
+
+  useEffect(() => {
+    sceneRef.current?.setBestSeats(verdict.status === 'NIGHT' || verdict.status === 'DOES_NOT_MATTER' ? [] : verdict.bestSeatIds);
+  }, [verdict, vehicle]);
 
   useEffect(() => {
     sceneRef.current?.setView(view);

@@ -31,6 +31,7 @@ export function RouteFigure({
 }: {
   route: DecodedRoute;
   verdict: TripExposureVerdict;
+  /** The moment to draw the protractor at (the inspected minute, or the shared default). */
   step: TimelineStep | null;
   origin: Place;
   destination: Place;
@@ -57,12 +58,7 @@ export function RouteFigure({
     return { project, d };
   }, [route]);
 
-  // Focus: the inspected minute, or the middle of the daylight part of the trip.
-  const focus = useMemo(() => {
-    if (step) return step;
-    const day = verdict.timeline.filter((t) => !t.isNight);
-    return day[Math.floor(day.length / 2)] ?? verdict.timeline[Math.floor(verdict.timeline.length / 2)] ?? null;
-  }, [step, verdict]);
+  const focus = step;
 
   const start = route.coordinates[0];
   const end = route.coordinates[route.coordinates.length - 1];

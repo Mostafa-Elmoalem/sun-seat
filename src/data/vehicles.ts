@@ -13,23 +13,25 @@ const MB_ROWS_Y = [1.05, 1.95, 2.8, 3.65, 4.55];
 
 function microbusSeats(): VehicleSeat[] {
   const seats: VehicleSeat[] = [
-    seat(1, 0, 1, 'middle', false, 0.02, MB_ROWS_Y[0]!, MB_CUSHION + 0.04, 'جنب السواق (النص)', 'Front middle'),
-    seat(2, 0, 2, 'right', true, 0.52, MB_ROWS_Y[0]!, MB_CUSHION + 0.04, 'جنب السواق (الشباك)', 'Front window')
+    seat(1, 0, 1, 'middle', false, 0.02, MB_ROWS_Y[0]!, MB_CUSHION + 0.04, 'قدام جنب السواق', 'Front, next to the driver'),
+    seat(2, 0, 2, 'right', true, 0.52, MB_ROWS_Y[0]!, MB_CUSHION + 0.04, 'قدام، شباك ناحية الباب', 'Front, door side window')
   ];
+  const benchAr = ['', 'الكنبة الأولى', 'الكنبة التانية', 'الكنبة التالتة'];
+  const benchEn = ['', 'First bench', 'Second bench', 'Third bench'];
   let id = 3;
   for (let row = 1; row <= 3; row++) {
     const y = MB_ROWS_Y[row]!;
-    seats.push(seat(id++, row, 0, 'left', true, -0.6, y, MB_CUSHION, `صف ${row}، شباك شمال`, `Row ${row}, left window`));
-    seats.push(seat(id++, row, 1, 'middle', false, -0.12, y, MB_CUSHION, `صف ${row}، النص`, `Row ${row}, middle`));
+    seats.push(seat(id++, row, 0, 'left', true, -0.6, y, MB_CUSHION, `${benchAr[row]}، شباك ناحية السواق`, `${benchEn[row]}, driver side window`));
+    seats.push(seat(id++, row, 1, 'middle', false, -0.12, y, MB_CUSHION, `${benchAr[row]}، النص`, `${benchEn[row]}, middle`));
     seats.push({
-      ...seat(id++, row, 2, 'right', true, 0.55, y, MB_CUSHION, `صف ${row}، القلاب (شباك يمين)`, `Row ${row}, jump seat (right window)`),
+      ...seat(id++, row, 2, 'right', true, 0.55, y, MB_CUSHION, `${benchAr[row]}، القلاب ناحية الباب`, `${benchEn[row]}, door side jump seat`),
       isJump: true
     });
   }
   const back = MB_ROWS_Y[4]!;
-  seats.push(seat(id++, 4, 0, 'left', true, -0.58, back, MB_CUSHION, 'الكنبة الورانية، شمال', 'Back bench, left'));
+  seats.push(seat(id++, 4, 0, 'left', true, -0.58, back, MB_CUSHION, 'الكنبة الورانية، شباك ناحية السواق', 'Back bench, driver side window'));
   seats.push(seat(id++, 4, 1, 'middle', false, 0, back, MB_CUSHION, 'الكنبة الورانية، النص', 'Back bench, middle'));
-  seats.push(seat(id++, 4, 2, 'right', true, 0.58, back, MB_CUSHION, 'الكنبة الورانية، يمين', 'Back bench, right'));
+  seats.push(seat(id++, 4, 2, 'right', true, 0.58, back, MB_CUSHION, 'الكنبة الورانية، شباك ناحية الباب', 'Back bench, door side window'));
   return seats;
 }
 
@@ -85,10 +87,10 @@ const BUS_ROW_PITCH = 0.84;
 function busSeats(): VehicleSeat[] {
   const seats: VehicleSeat[] = [];
   const cols: { x: number; side: 'left' | 'right'; isWindow: boolean; ar: string; en: string }[] = [
-    { x: -1.0, side: 'left', isWindow: true, ar: 'شباك شمال', en: 'left window' },
-    { x: -0.55, side: 'left', isWindow: false, ar: 'ممر شمال', en: 'left aisle' },
-    { x: 0.55, side: 'right', isWindow: false, ar: 'ممر يمين', en: 'right aisle' },
-    { x: 1.0, side: 'right', isWindow: true, ar: 'شباك يمين', en: 'right window' }
+    { x: -1.0, side: 'left', isWindow: true, ar: 'شباك ناحية السواق', en: 'driver side window' },
+    { x: -0.55, side: 'left', isWindow: false, ar: 'ممر ناحية السواق', en: 'driver side aisle' },
+    { x: 0.55, side: 'right', isWindow: false, ar: 'ممر ناحية الباب', en: 'door side aisle' },
+    { x: 1.0, side: 'right', isWindow: true, ar: 'شباك ناحية الباب', en: 'door side window' }
   ];
   let id = 1;
   for (let row = 1; row <= 11; row++) {
@@ -99,11 +101,11 @@ function busSeats(): VehicleSeat[] {
   }
   const backY = BUS_FIRST_ROW_Y + 11 * BUS_ROW_PITCH;
   const back: [number, 'left' | 'middle' | 'right', boolean, string, string][] = [
-    [-1.0, 'left', true, 'الكنبة الورانية، شباك شمال', 'Back row, left window'],
-    [-0.5, 'left', false, 'الكنبة الورانية، شمال', 'Back row, left'],
+    [-1.0, 'left', true, 'الكنبة الورانية، شباك ناحية السواق', 'Back row, driver side window'],
+    [-0.5, 'left', false, 'الكنبة الورانية، ناحية السواق', 'Back row, driver side'],
     [0, 'middle', false, 'الكنبة الورانية، النص', 'Back row, middle'],
-    [0.5, 'right', false, 'الكنبة الورانية، يمين', 'Back row, right'],
-    [1.0, 'right', true, 'الكنبة الورانية، شباك يمين', 'Back row, right window']
+    [0.5, 'right', false, 'الكنبة الورانية، ناحية الباب', 'Back row, door side'],
+    [1.0, 'right', true, 'الكنبة الورانية، شباك ناحية الباب', 'Back row, door side window']
   ];
   back.forEach(([x, side, isWindow, ar, en], col) => {
     seats.push(seat(id++, 12, col, side, isWindow, x, backY, BUS_CUSHION, ar, en));
