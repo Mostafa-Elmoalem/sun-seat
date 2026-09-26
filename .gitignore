@@ -1,0 +1,36 @@
+# Dependencies
+node_modules/
+.pnp
+.pnp.js
+
+# Build & Test Output
+dist/
+dist-ssr/
+coverage/
+*.local
+
+# Local AI / Agent Tooling
+.agents/
+.claude/
+skills-lock.json
+
+# Environment Variables
+.env
+.env.*
+!.env.example
+
+# Logs & OS Files
+logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+.DS_Store
+Thumbs.db
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
