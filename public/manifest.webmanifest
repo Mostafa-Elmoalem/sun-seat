@@ -1,0 +1,21 @@
+{
+  "name": "اقعد فين؟ - دليل شمس المواصلات",
+  "short_name": "اقعد فين؟",
+  "description": "اعرف الجنب الضل وأبرد كرسي في الميكروباص والأتوبيس في مصر في ثواني ومن غير نت",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "dir": "rtl",
+  "lang": "ar-EG",
+  "background_color": "#F8FAFC",
+  "theme_color": "#0EA5E9",
+  "icons": [
+    {
+      "src": "/favicon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}
