@@ -1,0 +1,312 @@
+[
+  {
+    "id": "cairo-abboud",
+    "nameAr": "موقف عبود (القاهرة)",
+    "nameEn": "Abboud Station (Cairo)",
+    "governorateAr": "القاهرة",
+    "aliases": ["عبود", "موقف عبود", "شبرا الخيمة", "abboud"],
+    "location": { "lat": 30.0832, "lng": 31.2588 },
+    "type": "station",
+    "isPopular": true
+  },
+  {
+    "id": "cairo-ramses",
+    "nameAr": "موقف رمسيس (القاهرة)",
+    "nameEn": "Ramses Station (Cairo)",
+    "governorateAr": "القاهرة",
+    "aliases": ["رمسيس", "ميدان رمسيس", "محطة مصر", "ramses"],
+    "location": { "lat": 30.0583, "lng": 31.2464 },
+    "type": "station",
+    "isPopular": true
+  },
+  {
+    "id": "giza-moneeb",
+    "nameAr": "موقف المنيب (الجيزة)",
+    "nameEn": "El Moneeb Station (Giza)",
+    "governorateAr": "الجيزة",
+    "aliases": ["المنيب", "موقف المنيب", "محطة المنيب", "el moneeb", "moneeb"],
+    "location": { "lat": 29.9814, "lng": 31.2125 },
+    "type": "station",
+    "isPopular": true
+  },
+  {
+    "id": "cairo-elmarg",
+    "nameAr": "موقف المرج الجديدة",
+    "nameEn": "El Marg Station",
+    "governorateAr": "القاهرة",
+    "aliases": ["المرج", "المرج الجديدة", "موقف المرج", "marg"],
+    "location": { "lat": 30.1633, "lng": 31.3364 },
+    "type": "station",
+    "isPopular": false
+  },
+  {
+    "id": "cairo-elsalam",
+    "nameAr": "موقف السلام (القاهرة)",
+    "nameEn": "El Salam Station",
+    "governorateAr": "القاهرة",
+    "aliases": ["السلام", "موقف العاشر", "موقف السلام العاشر", "salam"],
+    "location": { "lat": 30.1517, "lng": 31.4211 },
+    "type": "station",
+    "isPopular": false
+  },
+  {
+    "id": "alex-moharam-bek",
+    "nameAr": "موقف محرم بك (الإسكندرية)",
+    "nameEn": "Moharam Bek Station (Alexandria)",
+    "governorateAr": "الإسكندرية",
+    "aliases": ["محرم بك", "موقف إسكندرية الجديد", "كارفور إسكندرية", "moharam bek", "alexandria"],
+    "location": { "lat": 31.1853, "lng": 29.9281 },
+    "type": "station",
+    "isPopular": true
+  },
+  {
+    "id": "alex-sidi-gaber",
+    "nameAr": "سيدي جابر (الإسكندرية)",
+    "nameEn": "Sidi Gaber (Alexandria)",
+    "governorateAr": "الإسكندرية",
+    "aliases": ["سيدي جابر", "محطة سيدي جابر", "sidi gaber"],
+    "location": { "lat": 31.2185, "lng": 29.9427 },
+    "type": "station",
+    "isPopular": true
+  },
+  {
+    "id": "alex-mahatet-elraml",
+    "nameAr": "محطة الرمل (الإسكندرية)",
+    "nameEn": "Mahatet El Raml (Alexandria)",
+    "governorateAr": "الإسكندرية",
+    "aliases": ["محطة الرمل", "الرمل", "raml"],
+    "location": { "lat": 31.1995, "lng": 29.8997 },
+    "type": "district",
+    "isPopular": false
+  },
+  {
+    "id": "alex-smouha",
+    "nameAr": "سموحة (الإسكندرية)",
+    "nameEn": "Smouha (Alexandria)",
+    "governorateAr": "الإسكندرية",
+    "aliases": ["سموحة", "ميدان فيكتور عمانويل", "smouha"],
+    "location": { "lat": 31.2156, "lng": 29.9575 },
+    "type": "district",
+    "isPopular": true
+  },
+  {
+    "id": "giza-dokki",
+    "nameAr": "الدقي (الجيزة)",
+    "nameEn": "Dokki (Giza)",
+    "governorateAr": "الجيزة",
+    "aliases": ["الدقي", "ميدان المساحة", "ميدان الدقي", "شارع مصدق", "dokki"],
+    "location": { "lat": 30.0385, "lng": 31.2119 },
+    "type": "district",
+    "isPopular": true
+  },
+  {
+    "id": "giza-mohandessin",
+    "nameAr": "المهندسين (الجيزة)",
+    "nameEn": "Mohandessin (Giza)",
+    "governorateAr": "الجيزة",
+    "aliases": ["المهندسين", "جامعة الدول", "ميدان لبنان", "سفنكس", "mohandessin"],
+    "location": { "lat": 30.0571, "lng": 31.1989 },
+    "type": "district",
+    "isPopular": true
+  },
+  {
+    "id": "cairo-heliopolis",
+    "nameAr": "مصر الجديدة (القاهرة)",
+    "nameEn": "Heliopolis (Cairo)",
+    "governorateAr": "القاهرة",
+    "aliases": ["مصر الجديدة", "روكسي", "الكوربة", "ميدان الحجاز", "heliopolis", "masr el gedida"],
+    "location": { "lat": 30.0911, "lng": 31.3236 },
+    "type": "district",
+    "isPopular": true
+  },
+  {
+    "id": "cairo-nasr-city",
+    "nameAr": "مدينة نصر (القاهرة)",
+    "nameEn": "Nasr City (Cairo)",
+    "governorateAr": "القاهرة",
+    "aliases": ["مدينة نصر", "عباس العقاد", "مكرم عبيد", "أول عباس", "nasr city"],
+    "location": { "lat": 30.0566, "lng": 31.3469 },
+    "type": "district",
+    "isPopular": true
+  },
+  {
+    "id": "cairo-maadi",
+    "nameAr": "المعادي (القاهرة)",
+    "nameEn": "Maadi (Cairo)",
+    "governorateAr": "القاهرة",
+    "aliases": ["المعادي", "دجلة المعادي", "شارع النصر", "ميدان الحرية", "maadi"],
+    "location": { "lat": 29.9602, "lng": 31.2569 },
+    "type": "district",
+    "isPopular": true
+  },
+  {
+    "id": "cairo-tagamoa",
+    "nameAr": "التجمع الخامس (القاهرة الجديدة)",
+    "nameEn": "New Cairo / 5th Settlement",
+    "governorateAr": "القاهرة",
+    "aliases": ["التجمع", "التجمع الخامس", "القاهرة الجديدة", "شارع التسعين", "tagamoa", "new cairo"],
+    "location": { "lat": 30.0074, "lng": 31.4339 },
+    "type": "district",
+    "isPopular": true
+  },
+  {
+    "id": "giza-october",
+    "nameAr": "6 أكتوبر (الجيزة)",
+    "nameEn": "6th of October City",
+    "governorateAr": "الجيزة",
+    "aliases": ["أكتوبر", "6 أكتوبر", "ميدان الحصري", "الحصري", "october", "6th of october"],
+    "location": { "lat": 29.9737, "lng": 30.9525 },
+    "type": "city",
+    "isPopular": true
+  },
+  {
+    "id": "giza-zayed",
+    "nameAr": "الشيخ زايد (الجيزة)",
+    "nameEn": "Sheikh Zayed City",
+    "governorateAr": "الجيزة",
+    "aliases": ["الشيخ زايد", "زايد", "هايبر وان", "zayed", "sheikh zayed"],
+    "location": { "lat": 30.0469, "lng": 30.9886 },
+    "type": "city",
+    "isPopular": false
+  },
+  {
+    "id": "cairo-helwan",
+    "nameAr": "حلوان (القاهرة)",
+    "nameEn": "Helwan (Cairo)",
+    "governorateAr": "القاهرة",
+    "aliases": ["حلوان", "موقف حلوان", "جامعة حلوان", "helwan"],
+    "location": { "lat": 29.8414, "lng": 31.3008 },
+    "type": "district",
+    "isPopular": false
+  },
+  {
+    "id": "gharbia-tanta",
+    "nameAr": "طنطا (موقف سبرباي)",
+    "nameEn": "Tanta (Seberbay Station)",
+    "governorateAr": "الغربية",
+    "aliases": ["طنطا", "موقف سبرباي", "سبرباي", "tanta"],
+    "location": { "lat": 30.7684, "lng": 31.0022 },
+    "type": "station",
+    "isPopular": true
+  },
+  {
+    "id": "gharbia-mahalla",
+    "nameAr": "المحلة الكبرى (موقف طلعت حرب)",
+    "nameEn": "El Mahalla El Kubra",
+    "governorateAr": "الغربية",
+    "aliases": ["المحلة", "المحله", "المحلة الكبرى", "المحله الكبري", "طلعت حرب المحلة", "mahalla", "el mahalla"],
+    "location": { "lat": 30.9706, "lng": 31.1669 },
+    "type": "station",
+    "isPopular": false
+  },
+  {
+    "id": "dakahlia-mansoura",
+    "nameAr": "المنصورة (موقف الدراسات)",
+    "nameEn": "Mansoura (El Derasat Station)",
+    "governorateAr": "الدقهلية",
+    "aliases": ["المنصورة", "موقف الدراسات", "موقف سندوب", "mansoura"],
+    "location": { "lat": 31.0409, "lng": 31.3785 },
+    "type": "station",
+    "isPopular": true
+  },
+  {
+    "id": "sharkia-zagazig",
+    "nameAr": "الزقازيق (موقف الأحرار)",
+    "nameEn": "Zagazig (El Ahrar Station)",
+    "governorateAr": "الشرقية",
+    "aliases": ["الزقازيق", "موقف الأحرار", "zagazig"],
+    "location": { "lat": 30.5877, "lng": 31.5020 },
+    "type": "station",
+    "isPopular": true
+  },
+  {
+    "id": "ismailia-station",
+    "nameAr": "الإسماعيلية (الموقف الجديد)",
+    "nameEn": "Ismailia New Station",
+    "governorateAr": "الإسماعيلية",
+    "aliases": ["الإسماعيلية", "اسماعيلية", "موقف الإسماعيلية", "ismailia"],
+    "location": { "lat": 30.6043, "lng": 32.2723 },
+    "type": "station",
+    "isPopular": true
+  },
+  {
+    "id": "suez-station",
+    "nameAr": "السويس (موقف الأربعين)",
+    "nameEn": "Suez (El Arbaeen Station)",
+    "governorateAr": "السويس",
+    "aliases": ["السويس", "الأربعين", "موقف السويس", "suez"],
+    "location": { "lat": 29.9737, "lng": 32.5358 },
+    "type": "station",
+    "isPopular": true
+  },
+  {
+    "id": "port-said-station",
+    "nameAr": "بورسعيد (الميناء البري)",
+    "nameEn": "Port Said Land Port",
+    "governorateAr": "بورسعيد",
+    "aliases": ["بورسعيد", "الميناء البري", "موقف بورسعيد", "port said"],
+    "location": { "lat": 31.2565, "lng": 32.2841 },
+    "type": "station",
+    "isPopular": true
+  },
+  {
+    "id": "fayoum-station",
+    "nameAr": "الفيوم (موقف مصر)",
+    "nameEn": "Fayoum Station",
+    "governorateAr": "الفيوم",
+    "aliases": ["الفيوم", "موقف الفيوم", "موقف مصر الفيوم", "fayoum"],
+    "location": { "lat": 29.3082, "lng": 30.8428 },
+    "type": "station",
+    "isPopular": true
+  },
+  {
+    "id": "beni-suef-station",
+    "nameAr": "بني سويف (موقف محيي الدين)",
+    "nameEn": "Beni Suef (Mohy El Din Station)",
+    "governorateAr": "بني سويف",
+    "aliases": ["بني سويف", "محيي الدين", "موقف بني سويف", "beni suef"],
+    "location": { "lat": 29.0744, "lng": 31.0979 },
+    "type": "station",
+    "isPopular": true
+  },
+  {
+    "id": "minya-station",
+    "nameAr": "المنيا (الموقف الجديد)",
+    "nameEn": "Minya New Station",
+    "governorateAr": "المنيا",
+    "aliases": ["المنيا", "موقف المنيا", "minya"],
+    "location": { "lat": 28.1099, "lng": 30.7503 },
+    "type": "station",
+    "isPopular": false
+  },
+  {
+    "id": "assiut-station",
+    "nameAr": "أسيوط (موقف المعلمين)",
+    "nameEn": "Assiut (El Moalemeen Station)",
+    "governorateAr": "أسيوط",
+    "aliases": ["أسيوط", "اسيوط", "موقف المعلمين", "نزلة عبد اللاه", "assiut"],
+    "location": { "lat": 27.1809, "lng": 31.1837 },
+    "type": "station",
+    "isPopular": false
+  },
+  {
+    "id": "sohag-station",
+    "nameAr": "سوهاج (الموقف الجديد)",
+    "nameEn": "Sohag New Station",
+    "governorateAr": "سوهاج",
+    "aliases": ["سوهاج", "موقف سوهاج", "sohag"],
+    "location": { "lat": 26.5569, "lng": 31.6948 },
+    "type": "station",
+    "isPopular": false
+  },
+  {
+    "id": "aswan-station",
+    "nameAr": "أسوان (موقف الأقاليم)",
+    "nameEn": "Aswan Station",
+    "governorateAr": "أسوان",
+    "aliases": ["أسوان", "اسوان", "موقف أسوان", "aswan"],
+    "location": { "lat": 24.0889, "lng": 32.8998 },
+    "type": "station",
+    "isPopular": false
+  }
+]
