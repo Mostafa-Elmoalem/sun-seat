@@ -31,7 +31,7 @@ Students and daily commuters at a microbus terminal, often in direct sun, one ha
 - **Places:** 65 curated hubs (`src/data/hubs.ts`), an OSM gazetteer of about 2,400 Egyptian places (`public/data/gazetteer-eg.json`, built by `scripts/build-places.ts`), Photon online search, GPS.
 - **Routes:** 150 real OSRM routes between hubs (`public/data/routes`, built by `scripts/precompute-routes.ts`), live OSRM with on-phone cache for anything else, a labeled straight line as last resort.
 - **Engine:** per-passenger ray tracing through the vehicle's real window openings; roof, panels, seatbacks, headrests and neighbors cast shade (`src/core/exposure`). Verdict from window-seat sun minutes per side, plus a sensitivity check (30 min earlier or later, slow or fast traffic).
-- **Vehicles:** 14-seat HiAce microbus (owner-confirmed layout: 2 up front, 3 benches of 3 with a folding jump seat on the door side, back bench of 3) and a 49-seat coach, as data in `src/data/vehicles.ts`. The 3D view is built from the same profile.
+- **Vehicles:** the Chinese 14-seat microbus that dominates Egyptian terminals (HiAce H100 family: King Long / Golden Dragon, Jinbei Haise, Foton View; standard roof, 4.98 x 1.70 x 1.97 m, wheelbase 2.59 m) with the owner-confirmed layout (2 up front, 3 benches of 3 with a folding jump seat on the door side, back bench of 3), and a 49-seat coach, as data in `src/data/vehicles.ts`. The 3D view is built from the same profile.
 - **Design:** "كراسة الجغرافيا" (geography notebook), chosen by the owner through the impeccable skill. See `DESIGN.md` (system) and `PRODUCT.md` (product truth).
 - **Tests:** `npm test` covers compass ground truth, seat physics, route and place data integrity, adapters, share links, copy rules.
 
@@ -39,7 +39,7 @@ Students and daily commuters at a microbus terminal, often in direct sun, one ha
 
 - 2026-09-26: Audit found fabricated route data (the Cairo to Alexandria demo route started near Qena and gave the wrong side), a fake SVG "3D", 31 hardcoded places and a service worker that froze the first version. Rebuilt data, engine, UI and 3D.
 - 2026-09-26: Side naming, first screen (the form), Arabic first with English toggle, and the notebook direction confirmed by the owner.
-- 2026-09-26: Real HiAce model chosen: "Toyota Hiace Kombi And Super Long Wheelbase" by Nieve5677 on Sketchfab (CC BY 4.0), high-roof long commuter. The owner downloads it into `assets-src/hiace/` (not committed); a decimated copy ships in `public/models/` with visible credit in the app. The engine's window profile is to be measured from the model.
+- 2026-09-27: The owner chose the ordinary Chinese microbus (H100 family) over the high-roof HiAce because it is the most common. Microbus dimensions switched to the Golden Dragon 14-seat spec (4.98 x 1.70 x 1.97 m). Real model candidate: "Toyota Hiace 1995" by elenaisakova248 on Sketchfab (CC BY 4.0, H100 body, 1.5k triangles); the owner downloads it into `assets-src/hiace/` (not committed). Its painted windows get cut open so sunlight passes, its window openings get measured into the engine profile, and the app credits it visibly.
 - 2026-09-26: Old BMAD prompt pack and `docs/` removed (in git history).
 
 ## Open questions

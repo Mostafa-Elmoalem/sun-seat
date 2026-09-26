@@ -53,34 +53,42 @@ interface BodySpec {
   sill: number;
   windshield: { uBottom: number; vBottom: number; uTop: number; vTop: number };
   roofV: number;
+  /** Where the flat roof starts, measured from the nose. */
+  roofStartU: number;
+  /** Height of the livery stripe along the flanks. */
+  stripeV: number;
 }
 
+/** Chinese HiAce H100 family, standard roof: short sloped nose, raked windshield, long rear overhang. */
 function microbusSpec(p: VehicleProfile): BodySpec {
   const L = p.dimensions.lengthM;
   const H = p.dimensions.heightM;
-  const wheelU = [0.98, 4.1];
-  const r = 0.4;
+  const wheelU = [0.92, 3.51]; // 2.59 m wheelbase
+  const r = 0.38;
+  const sill = 0.34;
   return {
     wheelU,
-    wheelR: 0.33,
-    sill: 0.36,
+    wheelR: 0.31,
+    sill,
     roofV: H,
-    windshield: { uBottom: 0.26, vBottom: 1.06, uTop: 0.56, vTop: 1.93 },
+    roofStartU: 0.8,
+    stripeV: 0.98,
+    windshield: { uBottom: 0.3, vBottom: 1.02, uTop: 0.66, vTop: 1.8 },
     outline: () => {
       const s = new THREE.Shape();
-      s.moveTo(0.04, 0.36);
-      s.lineTo(wheelU[0]! - r, 0.36);
-      s.absarc(wheelU[0]!, 0.36, r, Math.PI, 0, true);
-      s.lineTo(wheelU[1]! - r, 0.36);
-      s.absarc(wheelU[1]!, 0.36, r, Math.PI, 0, true);
-      s.lineTo(L - 0.02, 0.36);
-      s.lineTo(L - 0.02, H - 0.1);
-      s.quadraticCurveTo(L - 0.02, H, L - 0.14, H);
-      s.lineTo(0.95, H);
-      s.quadraticCurveTo(0.62, H, 0.56, 1.93);
-      s.lineTo(0.26, 1.06);
-      s.quadraticCurveTo(0.02, 0.98, 0.02, 0.72);
-      s.lineTo(0.04, 0.36);
+      s.moveTo(0.04, sill);
+      s.lineTo(wheelU[0]! - r, sill);
+      s.absarc(wheelU[0]!, sill, r, Math.PI, 0, true);
+      s.lineTo(wheelU[1]! - r, sill);
+      s.absarc(wheelU[1]!, sill, r, Math.PI, 0, true);
+      s.lineTo(L - 0.03, sill);
+      s.lineTo(L - 0.03, H - 0.12);
+      s.quadraticCurveTo(L - 0.03, H, L - 0.16, H);
+      s.lineTo(0.8, H);
+      s.quadraticCurveTo(0.7, H, 0.66, 1.8);
+      s.lineTo(0.3, 1.02);
+      s.quadraticCurveTo(0.03, 0.95, 0.02, 0.7);
+      s.lineTo(0.04, sill);
       return s;
     }
   };
@@ -96,6 +104,8 @@ function busSpec(p: VehicleProfile): BodySpec {
     wheelR: 0.5,
     sill: 0.42,
     roofV: H,
+    roofStartU: 0.5,
+    stripeV: 1.72,
     windshield: { uBottom: 0.06, vBottom: 1.0, uTop: 0.28, vTop: 3.08 },
     outline: () => {
       const s = new THREE.Shape();
@@ -368,7 +378,7 @@ export class VehicleScene {
 
       // Livery stripe below the windows.
       const stripe = new THREE.Mesh(this.track(new THREE.BoxGeometry(0.012, 0.09, L * 0.86)), this.mat(COLORS.stripe, { roughness: 0.4 }));
-      stripe.position.copy(this.toThree(side === 'left' ? -halfW - 0.004 : halfW + 0.004, L * 0.5, v.type === 'bus' ? 1.72 : 1.05));
+      stripe.position.copy(this.toThree(side === 'left' ? -halfW - 0.004 : halfW + 0.004, L * 0.5, spec.stripeV));
       this.scene.add(stripe);
     }
 
@@ -387,20 +397,20 @@ export class VehicleScene {
     }
 
     // Roof slab and front cap: opaque, cast shadows. Hidden (but still shadowing) in the top view.
-    const roofLen = L - 0.95;
+    const roofLen = L - spec.roofStartU;
     const roof = new THREE.Mesh(this.track(new THREE.BoxGeometry(W, 0.06, roofLen)), bodyMat);
-    roof.position.copy(this.toThree(0, 0.95 + roofLen / 2 - 0.02, spec.roofV - 0.03));
+    roof.position.copy(this.toThree(0, spec.roofStartU + roofLen / 2 - 0.02, spec.roofV - 0.03));
     roof.castShadow = true;
     roof.receiveShadow = true;
     this.scene.add(roof);
     this.roofParts.push(roof);
 
     const ws = spec.windshield;
-    const capGeo = this.track(new THREE.BoxGeometry(W, 0.06, Math.hypot(0.95 - ws.uTop, spec.roofV - ws.vTop) + 0.08));
+    const capGeo = this.track(new THREE.BoxGeometry(W, 0.06, Math.hypot(spec.roofStartU - ws.uTop, spec.roofV - ws.vTop) + 0.08));
     const cap = new THREE.Mesh(capGeo, bodyMat);
     // Box length runs along local Z; tilt it up from the windshield top to the roof.
-    cap.rotation.x = -Math.atan2(spec.roofV - ws.vTop, 0.95 - ws.uTop);
-    cap.position.copy(this.toThree(0, (0.95 + ws.uTop) / 2, (spec.roofV + ws.vTop) / 2 - 0.02));
+    cap.rotation.x = -Math.atan2(spec.roofV - ws.vTop, spec.roofStartU - ws.uTop);
+    cap.position.copy(this.toThree(0, (spec.roofStartU + ws.uTop) / 2, (spec.roofV + ws.vTop) / 2 - 0.02));
     cap.castShadow = true;
     this.scene.add(cap);
     this.roofParts.push(cap);
@@ -408,7 +418,7 @@ export class VehicleScene {
     // Inner headliner so the cabin roof reads from inside.
     const liner = new THREE.Mesh(this.track(new THREE.PlaneGeometry(W - 0.1, roofLen)), this.mat(0xd9d6cc, { side: THREE.DoubleSide }));
     liner.rotation.x = Math.PI / 2;
-    liner.position.copy(this.toThree(0, 0.95 + roofLen / 2, roofInnerZ));
+    liner.position.copy(this.toThree(0, spec.roofStartU + roofLen / 2, roofInnerZ));
     liner.castShadow = true;
     this.scene.add(liner);
     this.roofParts.push(liner);
