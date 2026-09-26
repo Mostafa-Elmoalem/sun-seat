@@ -153,8 +153,20 @@ Role, Goal, Context, Stack, Constraints, Input, Output Format, Quality Criteria,
 - **Social Sharing & OpenGraph Preview**: Created `public/og-share.svg` and added complete OpenGraph (`og:title`, `og:description`, `og:image`, `og:locale`) and Twitter Card metadata to `index.html` for rich previews on WhatsApp, Facebook, and YouTube.
 - **Final Bundle & QA Verdict**: **GO FOR LAUNCH 🚀**. All 14 user stories (1.1 through 7.2) are 100% Done. All **13 test suites (100 tests)** pass in `1.70s`. Final initial critical-path JS bundle is **99.79 KB gzipped** ($\le 100\text{ KB}$ Story 7.2 target and $\le 120\text{ KB}$ hard budget), with the 3D scene isolated in a **5.33 KB gzipped** lazy chunk. Full QA report published in `docs/qa-launch-report.md`.
 
+### Session 14 | Rebuild: real data, physics engine, real 3D, notebook redesign (2026-09-26)
+- **Audit findings (owner review):** the flagship Cairo (Abboud) to Alexandria route file was fabricated (it started near Qena) and produced the wrong verdict ("sit left" where the correct answer is the door side); the other routes had 17 to 26 points; only 31 hardcoded places, some 2.5 km off; the "3D" view was an SVG projection with a WebGL canvas that only cleared a color; the service worker served the first version forever; the exposure engine used guessed factors (0.35, a flat 68 degree cutoff). The previous "GO FOR LAUNCH" and "100% tests passing" did not catch any of it.
+- **Places:** 65 curated hubs with OSM-verified coordinates, an OSM gazetteer of about 2,400 Egyptian places (lazy, offline after first load, built by scripts/build-places.ts), Photon online search for anything else, and GPS snapped to the nearest named place.
+- **Routes:** 150 real OSRM road routes between hubs (scripts/precompute-routes.ts, endpoint-validated), live OSRM for any other pair with on-phone caching, and a labeled straight-line fallback. Data integrity tests now fail on fake or stale routes.
+- **Engine:** per-passenger ray tracing through the real window openings, with roof, panels, seatbacks and neighbors as occluders, Fresnel glass transmission and a horizon ramp. Verdicts come from window-seat sun minutes; night, does-not-matter and tie are explicit.
+- **Owner decisions:** sides are named "ناحية السواق" and "ناحية الباب" only (no شمال/يمين); first screen is the form; Arabic first with English toggle; name open to change; visual direction "كراسة الجغرافيا" (geography notebook) chosen through the impeccable skill.
+- **3D:** three.js, lazy chunk (about 156 KB gzip), HiAce-style body built from the same profile as the engine, directional sun light with shadow maps, passengers, day sun path, north marker, top, outside and from-your-seat views, and a play-the-trip control.
+- **PWA:** service worker stamped per build (fresh cache names, network-first navigation). CSP allows Open-Meteo, the OSRM demo router and Photon.
+- **Risk carried forward:** OSRM demo and Photon have no SLA; recommended launch fix is self-hosting both on a small VPS with the Egypt OSM extract.
+
 ## OPEN QUESTIONS (carry forward)
-- None. All 13 BMAD sessions and all 14 stories (Epics 1–7) are 100% complete and verified **GO FOR LAUNCH**.
+- Self-host OSRM and Photon before the video, or accept the public-service risk?
+- Final product name (owner is open to alternatives to "اقعد فين؟").
+- Share image card (story format) was removed with the old UI; rebuild it in the notebook style?
 
 
 
