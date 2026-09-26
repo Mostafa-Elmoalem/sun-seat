@@ -2,462 +2,260 @@ import { useStore } from 'zustand';
 import { createStore } from 'zustand/vanilla';
 import type { Place } from '../../core/types/places.ts';
 import type { DecodedRoute } from '../../core/types/routes.ts';
-import type {
-  VehicleProfile,
-  TripExposureVerdict,
-  SeatExposure,
-  TimelineStep
-} from '../../core/types/vehicle.ts';
+import type { TripExposureVerdict } from '../../core/types/vehicle.ts';
 import type { AppLanguage } from '../i18n/copy.ts';
 import { defaultPlacesRepository } from '../../adapters/places-repository.ts';
 import { defaultRoutesRepository } from '../../adapters/routes-repository.ts';
 import { defaultVehicleRepository } from '../../core/vehicles/vehicle-repository.ts';
-import {
-  calculateTripExposure,
-  calculateSunVector
-} from '../../core/exposure/exposure-calculator.ts';
-import {
-  defaultWeatherService,
-  type WeatherData
-} from '../../adapters/weather-service.ts';
+import { calculateTripExposure } from '../../core/exposure/exposure-calculator.ts';
+import { defaultWeatherService, type WeatherData } from '../../adapters/weather-service.ts';
+import { getHubById } from '../../data/hubs.ts';
 
-export interface RecentTripItem {
-  id: string;
-  originId: string;
-  originNameAr: string;
-  originNameEn: string;
-  destinationId: string;
-  destinationNameAr: string;
-  destinationNameEn: string;
+const RECENTS_KEY = 'sun_seat_recent_v2';
+const MAX_RECENTS = 4;
+
+export interface RecentTrip {
+  origin: Place;
+  destination: Place;
   vehicleId: string;
-  timestamp: number;
+  at: number;
 }
 
-export interface SerializedTripParams {
-  originId: string;
-  destinationId: string;
+export function roundToFiveMinutes(date: Date): Date {
+  const step = 5 * 60_000;
+  return new Date(Math.round(date.getTime() / step) * step);
+}
+
+/* ---------- Share links ----------
+ * Hubs travel by id (?f=cairo-abboud). Anything else travels as rounded
+ * coordinates plus a display name (?f=@30.106,31.254~الدقي). GPS points are
+ * rounded to 2 decimals (about 1 km) so a shared link never pins a home.
+ */
+function encodePlace(place: Place): string {
+  if (getHubById(place.id)) return place.id;
+  const decimals = place.kind === 'gps' ? 2 : 3;
+  const name = place.kind === 'gps' ? place.contextAr ?? place.nameAr : place.nameAr;
+  return `@${place.location.lat.toFixed(decimals)},${place.location.lng.toFixed(decimals)}~${name}`;
+}
+
+function decodePlace(raw: string | null): Place | null {
+  if (!raw) return null;
+  if (!raw.startsWith('@')) return getHubById(raw) ?? null;
+  const [coords, ...nameParts] = raw.slice(1).split('~');
+  const [latS, lngS] = (coords ?? '').split(',');
+  const lat = Number(latS);
+  const lng = Number(lngS);
+  if (!Number.isFinite(lat) || !Number.isFinite(lng) || lat < 21 || lat > 32.5 || lng < 24 || lng > 37.5) return null;
+  const name = nameParts.join('~').trim().slice(0, 80) || `${lat.toFixed(3)}, ${lng.toFixed(3)}`;
+  return { id: `p:${lat},${lng}`, nameAr: name, nameEn: name, location: { lat, lng }, kind: 'poi' };
+}
+
+export interface TripQuery {
+  origin: Place;
+  destination: Place;
   vehicleId: string;
-  departureDateUtc: Date;
-  lang?: AppLanguage;
+  departure: Date;
+  lang: AppLanguage;
 }
 
-const RECENT_TRIPS_STORAGE_KEY = 'sun_seat_recent_trips_v1';
-
-/**
- * Rounds any Date to the nearest 5-minute mark (0 seconds, 0 ms).
- */
-export function roundToNearestFiveMinutes(date: Date): Date {
-  const stepMs = 5 * 60 * 1000;
-  return new Date(Math.round(date.getTime() / stepMs) * stepMs);
+export function serializeTripToQuery(q: TripQuery): string {
+  const p = new URLSearchParams();
+  p.set('f', encodePlace(q.origin));
+  p.set('t', encodePlace(q.destination));
+  p.set('v', q.vehicleId);
+  p.set('d', String(Math.floor(q.departure.getTime() / 60_000)));
+  if (q.lang !== 'ar') p.set('lang', q.lang);
+  return `?${p.toString()}`;
 }
 
-/**
- * Serializes trip parameters into a privacy-safe URL query string (no personal data).
- */
-export function serializeTripToQuery(params: SerializedTripParams): string {
-  const searchParams = new URLSearchParams();
-  searchParams.set('from', params.originId);
-  searchParams.set('to', params.destinationId);
-  searchParams.set('v', params.vehicleId);
-  searchParams.set('t', String(Math.floor(params.departureDateUtc.getTime() / 60000)));
-  if (params.lang && params.lang !== 'ar') {
-    searchParams.set('lang', params.lang);
-  }
-  return `?${searchParams.toString()}`;
-}
-
-/**
- * Parses URL query string back into trip parameters if valid.
- */
-export function parseTripFromQuery(queryString: string): SerializedTripParams | null {
-  const clean = queryString.startsWith('?') ? queryString.slice(1) : queryString;
-  if (!clean) return null;
-
-  const params = new URLSearchParams(clean);
-  const fromId = params.get('from');
-  const toId = params.get('to');
-  if (!fromId || !toId) return null;
-
-  const origin = defaultPlacesRepository.getById(fromId);
-  const destination = defaultPlacesRepository.getById(toId);
+export function parseTripFromQuery(search: string): TripQuery | null {
+  const p = new URLSearchParams(search.startsWith('?') ? search.slice(1) : search);
+  const origin = decodePlace(p.get('f'));
+  const destination = decodePlace(p.get('t'));
   if (!origin || !destination) return null;
-
-  const vehicleId = params.get('v') || 'microbus-14';
-  const tRaw = params.get('t');
-  let departureDateUtc = roundToNearestFiveMinutes(new Date());
-
-  if (tRaw) {
-    const asNum = Number(tRaw);
-    if (!Number.isNaN(asNum) && asNum > 1000000) {
-      departureDateUtc = new Date(asNum * 60000);
-    } else {
-      const parsedIso = new Date(tRaw);
-      if (!Number.isNaN(parsedIso.getTime())) {
-        departureDateUtc = parsedIso;
-      }
-    }
-  }
-
-  const langParam = params.get('lang');
-  const lang: AppLanguage = langParam === 'en' ? 'en' : 'ar';
-
-  return {
-    originId: origin.id,
-    destinationId: destination.id,
-    vehicleId,
-    departureDateUtc,
-    lang
-  };
+  const minutes = Number(p.get('d'));
+  const departure =
+    Number.isFinite(minutes) && minutes > 20_000_000 ? new Date(minutes * 60_000) : roundToFiveMinutes(new Date());
+  const vehicleId = defaultVehicleRepository.getProfile(p.get('v') ?? 'microbus-14').id;
+  return { origin, destination, vehicleId, departure, lang: p.get('lang') === 'en' ? 'en' : 'ar' };
 }
 
-/**
- * Computes instantaneous per-seat exposure at a single timeline step in < 0.2ms
- * to power 60fps real-time scrubbing on the 2.5D Seat Heatmap.
- */
-export function calculateInstantSeatExposure(
-  vehicle: VehicleProfile,
-  step: TimelineStep
-): SeatExposure[] {
-  if (step.isNight || step.solarElevationDeg <= 0 || step.isHighNoon || step.solarElevationDeg > 68) {
-    const shadePct = step.isNight || step.solarElevationDeg <= 0 ? 100 : 90;
-    return vehicle.seats.map((seat) => ({
-      seatId: seat.id,
-      score: 100 - shadePct,
-      sunMinutes: 0,
-      shadePercentage: shadePct,
-      side: seat.side,
-      isWindow: seat.isWindow
-    }));
-  }
-
-  const { ux, uy } = calculateSunVector(
-    step.solarAzimuthDeg,
-    step.solarElevationDeg,
-    step.headingDeg
-  );
-
-  return vehicle.seats.map((seat) => {
-    let factor = 0;
-    if (ux > 0.05) {
-      factor = seat.side === 'right' ? 1.0 : seat.side === 'middle' ? 0.35 : 0.05;
-    } else if (ux < -0.05) {
-      factor = seat.side === 'left' ? 1.0 : seat.side === 'middle' ? 0.35 : 0.05;
-    } else if (uy > 0.5 && seat.row === 0) {
-      factor = 0.6;
-    } else if (uy < -0.5 && seat.row >= 3) {
-      factor = 0.5;
-    }
-
-    const windowBonus = seat.isWindow ? 1.0 : 0.6;
-    const sideProjection = Math.min(1.0, Math.abs(ux) * 1.35 + 0.2);
-    const score = Math.round(Math.min(100, Math.max(0, sideProjection * factor * windowBonus * 100)));
-
-    return {
-      seatId: seat.id,
-      score,
-      sunMinutes: score > 40 ? 1 : 0,
-      shadePercentage: 100 - score,
-      side: seat.side,
-      isWindow: seat.isWindow
-    };
-  });
-}
-
-function loadRecentTripsFromStorage(): RecentTripItem[] {
+function loadRecents(): RecentTrip[] {
   try {
-    if (typeof localStorage === 'undefined') return [];
-    const raw = localStorage.getItem(RECENT_TRIPS_STORAGE_KEY);
-    if (!raw) return [];
-    const parsed = JSON.parse(raw);
-    return Array.isArray(parsed) ? parsed.slice(0, 4) : [];
+    const raw = typeof localStorage !== 'undefined' ? localStorage.getItem(RECENTS_KEY) : null;
+    const parsed = raw ? (JSON.parse(raw) as unknown) : [];
+    return Array.isArray(parsed) ? (parsed as RecentTrip[]).filter((r) => r?.origin?.location && r?.destination?.location).slice(0, MAX_RECENTS) : [];
   } catch {
     return [];
   }
 }
 
-function saveRecentTripsToStorage(items: RecentTripItem[]): void {
+function saveRecents(items: RecentTrip[]): void {
   try {
-    if (typeof localStorage === 'undefined') return;
-    localStorage.setItem(RECENT_TRIPS_STORAGE_KEY, JSON.stringify(items.slice(0, 4)));
+    localStorage.setItem(RECENTS_KEY, JSON.stringify(items.slice(0, MAX_RECENTS)));
   } catch {
-    // Ignore storage quota errors
+    // Private mode or full storage: recents are a convenience only.
   }
 }
 
-export type TripErrorCode = 'SAME_PLACE' | 'MISSING_PLACES' | 'ROUTE_ERROR' | null;
+export type TripError = 'MISSING' | 'SAME' | null;
 
-export interface TripStoreState {
+export interface TripState {
   lang: AppLanguage;
-  activeScreen: 'input' | 'results';
+  screen: 'input' | 'result';
   origin: Place | null;
   destination: Place | null;
   vehicleId: string;
-  departureDateUtc: Date;
-  isNowMode: boolean;
-  swapCount: number;
-  isCalculating: boolean;
-  errorCode: TripErrorCode;
+  departure: Date;
+  isNow: boolean;
+  calculating: boolean;
+  error: TripError;
   route: DecodedRoute | null;
   verdict: TripExposureVerdict | null;
   weather: WeatherData | null;
+  /** Timeline index being inspected, or null for the whole-trip totals. */
+  scrubIndex: number | null;
   selectedSeatId: number | null;
-  scrubIndex: number;
-  isScrubbing: boolean;
-  activeTab: '2d' | '3d';
-  isDrawerOpen: boolean;
-  isSharedLinkVisit: boolean;
-  recentTrips: RecentTripItem[];
+  recents: RecentTrip[];
+  fromSharedLink: boolean;
 
   setLang: (lang: AppLanguage) => void;
-  setOrigin: (place: Place | null) => void;
-  setDestination: (place: Place | null) => void;
-  swapPlaces: () => void;
-  setVehicleId: (id: string) => void;
-  setDepartureDateUtc: (date: Date) => void;
-  setDepartureNow: () => void;
-  addMinutesToDeparture: (minutes: number) => void;
-  calculateTrip: () => Promise<void>;
-  applyRecentTrip: (item: RecentTripItem) => Promise<void>;
-  hydrateFromQuery: (queryString: string) => Promise<boolean>;
-  selectSeat: (seatId: number | null) => void;
-  setScrubIndex: (index: number) => void;
-  resetScrubToAverage: () => void;
-  setActiveTab: (tab: '2d' | '3d') => void;
-  setDrawerOpen: (open: boolean) => void;
+  setOrigin: (p: Place | null) => void;
+  setDestination: (p: Place | null) => void;
+  swap: () => void;
+  setVehicle: (id: string) => void;
+  setDeparture: (d: Date) => void;
+  setNow: () => void;
+  calculate: () => Promise<void>;
+  applyRecent: (r: RecentTrip) => Promise<void>;
+  hydrateFromQuery: (search: string) => Promise<boolean>;
+  setScrub: (i: number | null) => void;
+  selectSeat: (id: number | null) => void;
   goToInput: () => void;
-  resetStore: () => void;
 }
 
-const tripStoreApi = createStore<TripStoreState>((set, get) => ({
+function applyDocumentLang(lang: AppLanguage): void {
+  if (typeof document === 'undefined') return;
+  document.documentElement.lang = lang === 'ar' ? 'ar-EG' : 'en';
+  document.documentElement.dir = lang === 'ar' ? 'rtl' : 'ltr';
+}
+
+export const tripStore = createStore<TripState>((set, get) => ({
   lang: 'ar',
-  activeScreen: 'input',
-  origin: defaultPlacesRepository.getById('cairo-abboud') ?? null,
-  destination: defaultPlacesRepository.getById('alex-moharam-bek') ?? null,
+  screen: 'input',
+  origin: null,
+  destination: null,
   vehicleId: 'microbus-14',
-  departureDateUtc: roundToNearestFiveMinutes(new Date()),
-  isNowMode: true,
-  swapCount: 0,
-  isCalculating: false,
-  errorCode: null,
+  departure: roundToFiveMinutes(new Date()),
+  isNow: true,
+  calculating: false,
+  error: null,
   route: null,
   verdict: null,
   weather: null,
+  scrubIndex: null,
   selectedSeatId: null,
-  scrubIndex: 0,
-  isScrubbing: false,
-  activeTab: '2d',
-  isDrawerOpen: false,
-  isSharedLinkVisit: false,
-  recentTrips: loadRecentTripsFromStorage(),
+  recents: loadRecents(),
+  fromSharedLink: false,
 
   setLang: (lang) => {
     set({ lang });
-    if (typeof document !== 'undefined') {
-      document.documentElement.lang = lang;
-      document.documentElement.dir = lang === 'ar' ? 'rtl' : 'ltr';
-    }
+    applyDocumentLang(lang);
   },
+  setOrigin: (origin) => set({ origin, error: null }),
+  setDestination: (destination) => set({ destination, error: null }),
+  swap: () => set((s) => ({ origin: s.destination, destination: s.origin, error: null })),
+  setVehicle: (vehicleId) => set({ vehicleId }),
+  setDeparture: (departure) => set({ departure, isNow: false }),
+  setNow: () => set({ departure: roundToFiveMinutes(new Date()), isNow: true }),
 
-  setOrigin: (origin) => set({ origin, errorCode: null }),
+  calculate: async () => {
+    const { origin, destination, vehicleId, lang } = get();
+    if (!origin || !destination) return set({ error: 'MISSING' });
+    const sameSpot =
+      origin.id === destination.id ||
+      (Math.abs(origin.location.lat - destination.location.lat) < 0.002 &&
+        Math.abs(origin.location.lng - destination.location.lng) < 0.002);
+    if (sameSpot) return set({ error: 'SAME' });
 
-  setDestination: (destination) => set({ destination, errorCode: null }),
+    // "Now" means the moment the rider taps, not when the page was opened.
+    const departure = get().isNow ? roundToFiveMinutes(new Date()) : get().departure;
+    set({ calculating: true, error: null, departure });
 
-  swapPlaces: () => {
-    const { origin, destination, swapCount } = get();
+    const route = await defaultRoutesRepository.getRoute(origin, destination);
+    const vehicle = defaultVehicleRepository.getProfile(vehicleId);
+    const verdict = calculateTripExposure(route, departure, vehicle);
+
+    const recents = [
+      { origin, destination, vehicleId, at: Date.now() },
+      ...get().recents.filter(
+        (r) => !(r.origin.id === origin.id && r.destination.id === destination.id && r.vehicleId === vehicleId)
+      )
+    ].slice(0, MAX_RECENTS);
+    saveRecents(recents);
+
     set({
-      origin: destination,
-      destination: origin,
-      swapCount: swapCount + 1,
-      errorCode: null
+      route,
+      verdict,
+      weather: null,
+      screen: 'result',
+      calculating: false,
+      scrubIndex: null,
+      selectedSeatId: verdict.bestSeatIds[0] ?? null,
+      recents
+    });
+
+    if (typeof window !== 'undefined') {
+      window.history.replaceState(null, '', serializeTripToQuery({ origin, destination, vehicleId, departure, lang }));
+      window.scrollTo({ top: 0 });
+    }
+
+    void defaultWeatherService.getTripWeather(origin.location.lat, origin.location.lng, departure).then((weather) => {
+      if (weather && get().verdict === verdict) set({ weather });
     });
   },
 
-  setVehicleId: (vehicleId) => set({ vehicleId }),
-
-  setDepartureDateUtc: (date) => set({ departureDateUtc: date, isNowMode: false }),
-
-  setDepartureNow: () =>
-    set({
-      departureDateUtc: roundToNearestFiveMinutes(new Date()),
-      isNowMode: true
-    }),
-
-  addMinutesToDeparture: (minutes) => {
-    const current = get().departureDateUtc;
-    set({
-      departureDateUtc: new Date(current.getTime() + minutes * 60 * 1000),
-      isNowMode: false
-    });
+  applyRecent: async (r) => {
+    set({ origin: r.origin, destination: r.destination, vehicleId: r.vehicleId, isNow: true, error: null });
+    await get().calculate();
   },
 
-  calculateTrip: async () => {
-    const { origin, destination, vehicleId, departureDateUtc, lang, recentTrips } = get();
-
-    if (!origin || !destination) {
-      set({ errorCode: 'MISSING_PLACES' });
-      return;
-    }
-
-    if (origin.id === destination.id) {
-      set({ errorCode: 'SAME_PLACE', verdict: null });
-      return;
-    }
-
-    set({ isCalculating: true, errorCode: null });
-
-    try {
-      const route = await defaultRoutesRepository.getRoute(origin, destination);
-      const vehicle = defaultVehicleRepository.getProfile(vehicleId);
-      const verdict = calculateTripExposure(route, departureDateUtc, vehicle);
-
-      const newRecent: RecentTripItem = {
-        id: `${origin.id}-${destination.id}-${vehicle.id}`,
-        originId: origin.id,
-        originNameAr: origin.nameAr,
-        originNameEn: origin.nameEn,
-        destinationId: destination.id,
-        destinationNameAr: destination.nameAr,
-        destinationNameEn: destination.nameEn,
-        vehicleId: vehicle.id,
-        timestamp: Date.now()
-      };
-
-      const updatedRecent = [
-        newRecent,
-        ...recentTrips.filter((r) => !(r.originId === origin.id && r.destinationId === destination.id))
-      ].slice(0, 4);
-
-      saveRecentTripsToStorage(updatedRecent);
-
-      const bestFirstSeat = verdict.bestSeatIds[0] ?? 1;
-
-      set({
-        route,
-        verdict,
-        weather: null,
-        activeScreen: 'results',
-        isCalculating: false,
-        selectedSeatId: bestFirstSeat,
-        scrubIndex: 0,
-        isScrubbing: false,
-        recentTrips: updatedRecent
-      });
-
-      // Non-blocking background weather lookup (Story 5.2 AC-1 & Q3)
-      void defaultWeatherService
-        .getTripWeather(origin.location.lat, origin.location.lng, departureDateUtc)
-        .then((weatherData) => {
-          if (weatherData) {
-            set({ weather: weatherData });
-          }
-        });
-
-      if (typeof window !== 'undefined' && window.history?.replaceState) {
-        const query = serializeTripToQuery({
-          originId: origin.id,
-          destinationId: destination.id,
-          vehicleId: vehicle.id,
-          departureDateUtc,
-          lang
-        });
-        window.history.replaceState(null, '', query);
-      }
-    } catch {
-      set({ isCalculating: false, errorCode: 'ROUTE_ERROR' });
-    }
-  },
-
-  applyRecentTrip: async (item) => {
-    const origin = defaultPlacesRepository.getById(item.originId);
-    const destination = defaultPlacesRepository.getById(item.destinationId);
-    if (!origin || !destination) return;
-
+  hydrateFromQuery: async (search) => {
+    const q = parseTripFromQuery(search);
+    if (!q) return false;
     set({
-      origin,
-      destination,
-      vehicleId: item.vehicleId,
-      departureDateUtc: roundToNearestFiveMinutes(new Date()),
-      isNowMode: true,
-      errorCode: null
+      origin: q.origin,
+      destination: q.destination,
+      vehicleId: q.vehicleId,
+      departure: q.departure,
+      isNow: false,
+      fromSharedLink: true
     });
-
-    await get().calculateTrip();
-  },
-
-  hydrateFromQuery: async (queryString) => {
-    const parsed = parseTripFromQuery(queryString);
-    if (!parsed) return false;
-
-    const origin = defaultPlacesRepository.getById(parsed.originId);
-    const destination = defaultPlacesRepository.getById(parsed.destinationId);
-    if (!origin || !destination) return false;
-
-    set({
-      origin,
-      destination,
-      vehicleId: parsed.vehicleId,
-      departureDateUtc: parsed.departureDateUtc,
-      isNowMode: false,
-      lang: parsed.lang ?? 'ar',
-      isSharedLinkVisit: true,
-      errorCode: null
-    });
-
-    await get().calculateTrip();
+    get().setLang(q.lang);
+    await get().calculate();
     return true;
   },
 
+  setScrub: (scrubIndex) => set({ scrubIndex }),
   selectSeat: (selectedSeatId) => set({ selectedSeatId }),
-
-  setScrubIndex: (scrubIndex) => set({ scrubIndex, isScrubbing: true }),
-
-  resetScrubToAverage: () => set({ isScrubbing: false, scrubIndex: 0 }),
-
-  setActiveTab: (activeTab) => set({ activeTab }),
-
-  setDrawerOpen: (isDrawerOpen) => set({ isDrawerOpen }),
-
   goToInput: () => {
-    set({ activeScreen: 'input', isDrawerOpen: false });
-    if (typeof window !== 'undefined' && window.history?.replaceState) {
-      window.history.replaceState(null, '', window.location.pathname);
-    }
-  },
-
-  resetStore: () => {
-    if (typeof localStorage !== 'undefined') {
-      localStorage.removeItem(RECENT_TRIPS_STORAGE_KEY);
-    }
-    set({
-      lang: 'ar',
-      activeScreen: 'input',
-      origin: defaultPlacesRepository.getById('cairo-abboud') ?? null,
-      destination: defaultPlacesRepository.getById('alex-moharam-bek') ?? null,
-      vehicleId: 'microbus-14',
-      departureDateUtc: roundToNearestFiveMinutes(new Date()),
-      isNowMode: true,
-      swapCount: 0,
-      isCalculating: false,
-      errorCode: null,
-      route: null,
-      verdict: null,
-      weather: null,
-      selectedSeatId: null,
-      scrubIndex: 0,
-      isScrubbing: false,
-      activeTab: '2d',
-      isDrawerOpen: false,
-      isSharedLinkVisit: false,
-      recentTrips: []
-    });
+    set({ screen: 'input', scrubIndex: null });
+    if (typeof window !== 'undefined') window.history.replaceState(null, '', window.location.pathname);
   }
 }));
 
-tripStoreApi.getInitialState = () => tripStoreApi.getState();
+export function useTripStore(): TripState;
+export function useTripStore<T>(selector: (s: TripState) => T): T;
+export function useTripStore<T>(selector?: (s: TripState) => T) {
+  return useStore(tripStore, selector ?? ((s) => s as unknown as T));
+}
 
-export const useTripStore = Object.assign(
-  () => useStore(tripStoreApi),
-  tripStoreApi
-);
-
-
+/** Kick off the gazetteer download once the first screen is idle. */
+export function warmPlaces(): void {
+  const start = () => void defaultPlacesRepository.loadGazetteer();
+  if (typeof window !== 'undefined' && 'requestIdleCallback' in window) {
+    (window as Window & { requestIdleCallback: (cb: () => void) => void }).requestIdleCallback(start);
+  } else {
+    setTimeout(start, 1200);
+  }
+}

@@ -1,21 +1,19 @@
 {
-  "name": "اقعد فين؟ - دليل شمس المواصلات",
+  "name": "اقعد فين؟",
   "short_name": "اقعد فين؟",
-  "description": "اعرف الجنب الضل وأبرد كرسي في الميكروباص والأتوبيس في مصر في ثواني ومن غير نت",
+  "description": "اعرف تقعد ناحية أنهي شباك في الميكروباص أو الأتوبيس عشان الشمس ما تاكلكش.",
   "start_url": "/",
   "scope": "/",
   "display": "standalone",
   "orientation": "portrait",
   "dir": "rtl",
   "lang": "ar-EG",
-  "background_color": "#F8FAFC",
-  "theme_color": "#0EA5E9",
+  "background_color": "#fbfcfe",
+  "theme_color": "#fbfcfe",
   "icons": [
-    {
-      "src": "/favicon.svg",
-      "sizes": "any",
-      "type": "image/svg+xml",
-      "purpose": "any maskable"
-    }
+    { "src": "/icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "/icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "/icons/icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" },
+    { "src": "/favicon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" }
   ]
 }

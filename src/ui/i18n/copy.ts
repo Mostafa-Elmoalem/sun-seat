@@ -1,208 +1,364 @@
-/**
- * Bilingual Copy Deck (Arabic Egyptian Colloquial primary, English secondary).
- * Exact tokens and copy from docs/front-end-spec.md (Section 7).
- */
+import type { Side, SunDirection, VerdictStatus, ConfidenceLevel } from '../../core/types/vehicle.ts';
+import type { RouteSource } from '../../core/types/routes.ts';
+import type { PlaceKind } from '../../core/types/places.ts';
 
 export type AppLanguage = 'ar' | 'en';
 
-export interface CopyDeck {
-  app_title: string;
-  app_tagline: string;
-  greeting_headline: string;
-  input_from: string;
-  input_to: string;
-  input_from_placeholder: string;
-  input_to_placeholder: string;
-  btn_swap: string;
-  btn_gps: string;
-  btn_gps_loading: string;
-  vehicle_microbus: string;
-  vehicle_bus: string;
-  time_label: string;
-  input_time_now: string;
-  chip_plus_30m: string;
-  chip_plus_1h: string;
-  btn_calculate: string;
-  btn_calculating: string;
-  recent_trips_label: string;
-  popular_stations_label: string;
-  empty_stations: string;
-  offline_badge: string;
-  slow_network_badge: string;
-  err_same_place: string;
-  err_missing_places: string;
-  err_route_missing: string;
-  approx_route_badge: string;
-  verdict_left: string;
-  verdict_right: string;
-  verdict_leaning_left: string;
-  verdict_leaning_right: string;
-  verdict_night: string;
-  verdict_noon: string;
-  verdict_tie: string;
-  orientation_hint: string;
-  front_of_vehicle: string;
-  driver_label: string;
-  aisle_label: string;
-  left_side_label: string;
-  right_side_label: string;
-  shade_word: string;
-  sun_word: string;
-  confidence_high: string;
-  confidence_med: string;
-  confidence_low: string;
-  tab_seats_2d: string;
-  tab_model_3d: string;
-  scrubber_title: string;
-  scrubber_average_btn: string;
-  scrubber_flip_alert: string;
-  scrubber_disabled_night: string;
-  scrubber_disabled_noon: string;
-  drawer_trigger: string;
-  drawer_title: string;
-  drawer_step1_title: string;
-  drawer_step2_title: string;
-  drawer_step3_title: string;
-  youtube_cta: string;
-  btn_edit_trip: string;
-  btn_share: string;
-  btn_calc_yours: string;
-  share_copied_toast: string;
-  preview_3d_title: string;
-  preview_3d_desc: string;
-}
-
-export const COPY_DECK: Record<AppLanguage, CopyDeck> = {
+/**
+ * Copy deck. Egyptian colloquial first, English second.
+ * Sides are always named by what the rider sees inside: the driver side and the door side.
+ */
+export const COPY = {
   ar: {
-    app_title: 'اقعد فين؟',
-    app_tagline: 'اهرب من شمس الميكروباص في ثواني',
-    greeting_headline: '👋 رايح فين النهاردة؟',
-    input_from: 'هتركب منين؟',
-    input_to: 'رايح فين؟',
-    input_from_placeholder: 'موقف عبود، الدقي، رمسيس...',
-    input_to_placeholder: 'محرم بك، التجمع، طنطا...',
-    btn_swap: '⇅ عكس الاتجاه',
-    btn_gps: '📍 موقعي الحالي',
-    btn_gps_loading: '⏳ بنحدد أقرب موقف...',
-    vehicle_microbus: '🚐 ميكروباص 14',
-    vehicle_bus: '🚌 أتوبيس 49',
-    time_label: '🕒 ميعاد التحرك:',
-    input_time_now: 'دلوقتي حالا',
-    chip_plus_30m: '+30 دقيقة',
-    chip_plus_1h: '+ساعة',
-    btn_calculate: '🚀 احسب الضل ومكان القعدة',
-    btn_calculating: '⏳ بنحسب مسار الشمس...',
-    recent_trips_label: '🕒 آخر رحلاتك:',
-    popular_stations_label: 'أشهر المواقف السريعة:',
-    empty_stations: 'مفيش موقف بالاسم ده.. جرب أقرب مدينة',
-    offline_badge: 'شغال أوفلاين بدون نت ⚡',
-    slow_network_badge: 'شبكة ضعيفة.. شغالين محلياً ⚡',
-    err_same_place: 'إنت كده ما اتحركتش من مكانك.. اختار محطة وصول تانية',
-    err_missing_places: 'اختار محطة الانطلاق والوصول الأول',
-    err_route_missing: 'المسار ده لسه بنجهزه.. جرب أقرب موقف رئيسي',
-    approx_route_badge: 'مسار تقريبي (خط طيران مباشر)',
-    verdict_left: 'اقعد شمال! 🪟',
-    verdict_right: 'اقعد يمين! 🪟',
-    verdict_leaning_left: 'خليك في الشمال أحسن 🪟',
-    verdict_leaning_right: 'خليك في اليمين أحسن 🪟',
-    verdict_night: 'مفيش شمس.. اركب في أي حتة براحتك 🌙',
-    verdict_noon: 'الشمس فوق راسك بالظبط.. السقف حاميك ومش فارق الجنب ☀️',
-    verdict_tie: 'الجنبين زي بعض تقريباً.. اركب اللي يعجبك ⚖️',
-    orientation_hint: '* شمالك وإنت راكب وباصص لقدام ناحية السائق *',
-    front_of_vehicle: '▲ مقدمة العربية (السائق)',
-    driver_label: 'السائق 🛞',
-    aisle_label: 'ممر',
-    left_side_label: 'الجنب الشمال',
-    right_side_label: 'الجنب اليمين',
-    shade_word: 'ضل',
-    sun_word: 'شمس',
-    confidence_high: 'نصيحة مضمونة (الشمس ثابتة طول الطريق)',
-    confidence_med: 'الشمس هتنقل في نص السكة (درجة ثقة متوسطة)',
-    confidence_low: 'فرق قريب بين الجنبين (تتأثر بوقت التحرك)',
-    tab_seats_2d: '💺 مخطط الكراسي 2.5D',
-    tab_model_3d: '🌐 مجسم 3D',
-    scrubber_title: '🕒 حرك الوقت وشوف الشمس بتلف إزاي:',
-    scrubber_average_btn: 'عرض متوسط الرحلة كاملة',
-    scrubber_flip_alert: '🔄 الشمس بتعكس جنبها في النقطة دي!',
-    scrubber_disabled_night: '🌙 الرحلة كلها بالليل — ضل 100% طول الطريق',
-    scrubber_disabled_noon: '☀️ الشمس عمودية فوق السقف معظم وقت الرحلة',
-    drawer_trigger: '💡 شوف حسبناها إزاي (فلك وجغرافيا)',
-    drawer_title: '🌍 ليه تقعد في الجنب ده؟',
-    drawer_step1_title: '1. اتجاه المسار الجغرافي',
-    drawer_step2_title: '2. موضع الشمس الفلكي (NOAA)',
-    drawer_step3_title: '3. النتيجة الهندسية وحساسية الوقت',
-    youtube_cta: '🎥 شوف فيديو: الجغرافيا بتنفع في إيه؟',
-    btn_edit_trip: '← تعديل الرحلة',
-    btn_share: '📤 شير',
-    btn_calc_yours: '✨ احسب رحلتك إنت كمان',
-    share_copied_toast: 'تم نسخ رابط الرحلة! ابعته لصحابك 🚐☀️',
-    preview_3d_title: 'المجسم ثلاثي الأبعاد (3D WebGL)',
-    preview_3d_desc: 'بيتحمل عند الطلب فقط لحماية باقة الموبايل — متاح في وضع العرض الثلاثي.'
+    brand: 'اقعد فين؟',
+    intro: 'قولنا رايح فين وإمتى، نقولك تقعد <strong>ناحية أنهي شباك</strong> عشان الشمس ما تاكلكش طول السكة.',
+    langToggle: 'EN',
+    langToggleLabel: 'Switch to English',
+    offline: 'من غير نت',
+    from: 'من',
+    to: 'إلى',
+    fromPlaceholder: 'راكب منين؟',
+    toPlaceholder: 'نازل فين؟',
+    swap: 'اعكس الاتجاه',
+    when: 'إمتى؟',
+    date: 'اليوم',
+    time: 'الساعة',
+    now: 'دلوقتي',
+    in30: 'بعد نص ساعة',
+    in60: 'بعد ساعة',
+    tomorrow: 'بكرة',
+    today: 'النهارده',
+    vehicle: 'راكب إيه؟',
+    microbus: 'ميكروباص',
+    microbusSeats: '14 كرسي',
+    bus: 'أتوبيس',
+    busSeats: '49 كرسي',
+    cta: 'اعرف أقعد فين',
+    ctaBusy: 'بنحسب الشمس والطريق',
+    recents: 'مشاويرك الأخيرة',
+    errMissing: 'اختار رايح منين ورايح فين',
+    errSame: 'المكانين واحد، اختار مكان وصول تاني',
+    // Picker
+    searchPlaceholderFrom: 'اكتب موقف، حي، جامعة، أي مكان',
+    searchPlaceholderTo: 'اكتب موقف، حي، جامعة، أي مكان',
+    back: 'رجوع',
+    clear: 'امسح',
+    myLocation: 'موقعي دلوقتي',
+    myLocationHint: 'هنستخدمه للحسبة بس، مش بنحفظه',
+    locating: 'بنحدد مكانك',
+    gpsDenied: 'ما قدرناش نوصل لمكانك. اكتب اسم المكان بدل كده',
+    gpsNear: (name: string) => `قريب من ${name}`,
+    myLocationName: 'موقعي',
+    popular: 'أماكن مشهورة',
+    localResults: 'أماكن في مصر',
+    onlineResults: 'من الخريطة',
+    searchingOnline: 'بندور في الخريطة',
+    noResults: 'مش لاقيين المكان ده. جرب اسم أقرب حي أو مدينة',
+    offlineSearch: 'النت فاصل، بندور في الأماكن المحفوظة بس',
+    osm: 'بيانات الأماكن والطرق من © OpenStreetMap',
+    // Result
+    edit: 'تعديل',
+    share: 'شير',
+    shareText: (verdict: string, from: string, to: string) => `${verdict} في المشوار من ${from} إلى ${to}. اعرف مشوارك إنت:`,
+    copied: 'اتنسخ اللينك، ابعته لصحابك',
+    sideDriver: 'ناحية السواق',
+    sideDoor: 'ناحية الباب',
+    sitOn: 'اقعد',
+    slightlyBetter: 'أحسن شوية',
+    verdictTie: 'الجنبين زي بعض',
+    verdictNoMatter: 'مش فارقة',
+    verdictNight: 'مفيش شمس',
+    subClear: (sunny: string, sunnyMin: string, other: string, otherMin: string, trip: string) =>
+      `الشبابيك <b>${sunny}</b> هتاخد شمس حوالي <b>${sunnyMin}</b> من رحلة ${trip}. ${other} <b>${otherMin}</b> بس.`,
+    subTieSwitch: (first: string, firstFor: string, second: string) =>
+      `الشمس هتبقى ${first} أول ${firstFor}، وبعد كده هتلف ${second}. الفرق بين الجنبين صغير، اقعد في النص لو لقيت.`,
+    subTie: (min: string) => `الجنبين هياخدوا شمس قريبة من بعض (حوالي ${min}). الكراسي اللي في النص أبرد.`,
+    subNoMatterHigh: 'اقعد في أي حتة: الشمس عالية فوق السقف، والشبابيك مش هيدخل منها شمس تذكر.',
+    subNoMatterLow: 'اقعد في أي حتة: الشمس هتبقى قدام أو ورا العربية أو واطية أوي، فمش هتفرق جنب عن جنب.',
+    subNight: (sunrise: string) => `الرحلة كلها بالليل${sunrise ? `، والشمس بتطلع ${sunrise}` : ''}. اقعد في أي كرسي يريحك.`,
+    teacherClear: 'صح كده',
+    confidence: {
+      HIGH: 'النتيجة ثابتة حتى لو اتأخرت أو اتقدمت نص ساعة',
+      MEDIUM: 'النتيجة ثابتة في أغلب الحالات، إلا لو ميعادك اتغير كتير',
+      LOW: 'النتيجة ممكن تتقلب لو ميعادك اتغير نص ساعة'
+    } as Record<ConfidenceLevel, string>,
+    bestSeats: 'أحسن كراسي',
+    seatPlan: 'الكراسي',
+    seatPlanHint: 'الأصفر شمس، والأبيض ضل. الرقم تحت كل كرسي هو دقايق الشمس. دوس على أي كرسي.',
+    seatPlanLive: (time: string) => `الشمس الساعة ${time}`,
+    seatPlanTotal: 'مجموع الرحلة',
+    front: 'قدام',
+    driver: 'السواق',
+    door: 'الباب',
+    legendSun: 'شمس معظم الوقت',
+    legendSome: 'شمس شوية',
+    legendShade: 'ضل',
+    seat: 'كرسي',
+    seatSunMinutes: (m: string) => `${m} شمس`,
+    seatNoSun: 'مفيش شمس خالص',
+    seatWindow: 'جنب الشباك',
+    seatInner: 'مش جنب الشباك',
+    sunAlongTrip: 'الشمس طول الطريق',
+    rulerHint: 'حرّك المؤشر وشوف الشمس فين في أي لحظة',
+    rulerAverage: 'رجّع لمجموع الرحلة',
+    departure: 'التحرك',
+    arrival: 'الوصول',
+    sunNow: (side: string) => side,
+    spanOn: (side: string, from: string, to: string) => `${side} من ${from} لـ ${to}`,
+    dir: {
+      left: 'الشمس ناحية السواق',
+      right: 'الشمس ناحية الباب',
+      front: 'الشمس قدام العربية',
+      rear: 'الشمس ورا العربية',
+      overhead: 'الشمس فوق السقف',
+      none: 'مفيش شمس'
+    } as Record<SunDirection, string>,
+    routeFigure: 'الطريق والشمس',
+    routeCaption: (km: string, heading: string) => `المسافة ${km} كم، والطريق رايح ناحية ${heading} في المتوسط.`,
+    north: 'ش',
+    source: {
+      precomputed: 'طريق حقيقي من الخريطة',
+      live: 'طريق حقيقي من الخريطة',
+      cached: 'طريق حقيقي محفوظ على موبايلك',
+      straight: 'مسار تقريبي (خط مستقيم) لأن النت مش متاح'
+    } as Record<RouteSource, string>,
+    compass: ['الشمال', 'الشمال الشرقي', 'الشرق', 'الجنوب الشرقي', 'الجنوب', 'الجنوب الغربي', 'الغرب', 'الشمال الغربي'],
+    threeTitle: 'شوفها من جوه العربية',
+    threeLoad: 'افتح العربية 3D',
+    threeCost: 'بيحمّل حوالي 160 KB مرة واحدة بس',
+    threeLoading: 'بنجهز العربية',
+    threeFailed: 'العرض 3D مش شغال على الموبايل ده. خريطة الكراسي فوق فيها نفس النتيجة.',
+    threeViews: { outside: 'من برة', top: 'من فوق', seat: 'من كرسيك' },
+    threePlay: 'شغّل الرحلة',
+    threePause: 'وقف',
+    howTitle: 'حسبناها إزاي؟',
+    how: [
+      'جبنا الطريق الحقيقي من خريطة OpenStreetMap، وعرفنا العربية رايحة ناحية فين في كل دقيقة من المشوار.',
+      'حسبنا مكان الشمس في السما لكل دقيقة بتوقيت القاهرة، على الموبايل نفسه من غير نت.',
+      'رمينا شعاع من كل راكب ناحية الشمس: لو عدى من شباك يبقى شمس، ولو خبط في السقف أو في راكب جنبه يبقى ضل.'
+    ],
+    howAssume: 'افترضنا إن العربية مليانة والشبابيك من غير ستاير ولا فاميه، والشمس ما عليهاش سحاب.',
+    sensitivityTitle: 'لو ميعادك اتغير',
+    scenario: { early: 'لو اتحركت بدري نص ساعة', late: 'لو اتأخرت نص ساعة', slow: 'لو الطريق زحمة', fast: 'لو الطريق فاضي' } as Record<string, string>,
+    either: 'زي بعض',
+    weatherCloudy: (pct: number) => `السما فيها سحاب حوالي ${pct}%، الشمس ممكن تبقى أخف من كده.`,
+    busCurtains: 'الأتوبيس فيه ستاير غالبا، بس الجنب اللي فيه شمس هيفضل أحر.',
+    newVersion: 'فيه نسخة جديدة من الموقع',
+    update: 'حدّث',
+    calcYours: 'احسب مشوارك إنت'
   },
   en: {
-    app_title: 'Sit Where?',
-    app_tagline: 'Dodge the microbus sun in seconds',
-    greeting_headline: '👋 Where are you heading today?',
-    input_from: 'Departure station',
-    input_to: 'Destination station',
-    input_from_placeholder: 'Abboud, Dokki, Ramses...',
-    input_to_placeholder: 'Moharam Bek, Tagamoa, Tanta...',
-    btn_swap: '⇅ Swap Direction',
-    btn_gps: '📍 Nearest to me',
-    btn_gps_loading: '⏳ Locating nearest hub...',
-    vehicle_microbus: '🚐 Microbus 14',
-    vehicle_bus: '🚌 Coach Bus 49',
-    time_label: '🕒 Departure time:',
-    input_time_now: 'Right now',
-    chip_plus_30m: '+30 min',
-    chip_plus_1h: '+1 hour',
-    btn_calculate: '🚀 Calculate Shaded Seats',
-    btn_calculating: '⏳ Calculating sun path...',
-    recent_trips_label: '🕒 Recent trips:',
-    popular_stations_label: 'Popular hubs:',
-    empty_stations: 'No station found with this name.. try nearest city',
-    offline_badge: 'Offline Ready ⚡',
-    slow_network_badge: 'Slow network.. running locally ⚡',
-    err_same_place: 'Same origin and destination.. pick a different arrival station',
-    err_missing_places: 'Please select both origin and destination stations',
-    err_route_missing: 'Route coming soon.. try nearest main hub',
-    approx_route_badge: 'Approximate route (direct bearing)',
-    verdict_left: 'Sit on the LEFT side! 🪟',
-    verdict_right: 'Sit on the RIGHT side! 🪟',
-    verdict_leaning_left: 'Leaning LEFT side 🪟',
-    verdict_leaning_right: 'Leaning RIGHT side 🪟',
-    verdict_night: 'No sun at night, sit anywhere 🌙',
-    verdict_noon: 'Sun directly overhead, roof protects you ☀️',
-    verdict_tie: 'Both sides are practically equal ⚖️',
-    orientation_hint: '* Your physical left facing forward towards the driver *',
-    front_of_vehicle: '▲ Front of Vehicle (Driver)',
-    driver_label: 'Driver 🛞',
-    aisle_label: 'Aisle',
-    left_side_label: 'Left Side',
-    right_side_label: 'Right Side',
-    shade_word: 'Shade',
-    sun_word: 'Sun',
-    confidence_high: 'High confidence advice (sun stays on one side)',
-    confidence_med: 'Medium confidence (sun shifts mid-route)',
-    confidence_low: 'Close call (sensitive to departure time)',
-    tab_seats_2d: '💺 2.5D Seat Map',
-    tab_model_3d: '🌐 3D Model',
-    scrubber_title: '🕒 Scrub timeline to watch the sun move:',
-    scrubber_average_btn: 'Show full-trip average',
-    scrubber_flip_alert: '🔄 Sun flips sides at this point!',
-    scrubber_disabled_night: '🌙 Night trip — 100% shade all the way',
-    scrubber_disabled_noon: '☀️ High overhead sun — roof blocks direct rays',
-    drawer_trigger: '💡 How we calculated it (Astronomy & Geography)',
-    drawer_title: '🌍 Why sit on this side?',
-    drawer_step1_title: '1. Route Bearing & Heading',
-    drawer_step2_title: '2. Solar Azimuth & Elevation (NOAA)',
-    drawer_step3_title: '3. Geometric Result & Time Sensitivity',
-    youtube_cta: '🎥 Watch Video: What is geography even good for?',
-    btn_edit_trip: '← Edit Trip',
-    btn_share: '📤 Share',
-    btn_calc_yours: '✨ Calculate your own trip',
-    share_copied_toast: 'Trip link copied! Share it with friends 🚐☀️',
-    preview_3d_title: 'Interactive 3D Vehicle View',
-    preview_3d_desc: 'Lazy-loaded on demand to save mobile data.'
+    brand: 'Sit Where?',
+    intro: 'Tell us where and when, and we tell you <strong>which window side</strong> stays out of the sun for the whole ride.',
+    langToggle: 'عربي',
+    langToggleLabel: 'التبديل للعربية',
+    offline: 'Offline',
+    from: 'From',
+    to: 'To',
+    fromPlaceholder: 'Getting on where?',
+    toPlaceholder: 'Getting off where?',
+    swap: 'Swap direction',
+    when: 'When?',
+    date: 'Day',
+    time: 'Time',
+    now: 'Now',
+    in30: 'In 30 min',
+    in60: 'In 1 hour',
+    tomorrow: 'Tomorrow',
+    today: 'Today',
+    vehicle: 'Riding what?',
+    microbus: 'Microbus',
+    microbusSeats: '14 seats',
+    bus: 'Coach',
+    busSeats: '49 seats',
+    cta: 'Show me where to sit',
+    ctaBusy: 'Working out sun and road',
+    recents: 'Recent trips',
+    errMissing: 'Pick where you are going from and to',
+    errSame: 'Both places are the same, pick another destination',
+    searchPlaceholderFrom: 'Terminal, district, university, anywhere',
+    searchPlaceholderTo: 'Terminal, district, university, anywhere',
+    back: 'Back',
+    clear: 'Clear',
+    myLocation: 'My current location',
+    myLocationHint: 'Used for this calculation only, never stored',
+    locating: 'Finding you',
+    gpsDenied: 'Could not get your location. Type the place instead',
+    gpsNear: (name: string) => `near ${name}`,
+    myLocationName: 'My location',
+    popular: 'Popular places',
+    localResults: 'Places in Egypt',
+    onlineResults: 'From the map',
+    searchingOnline: 'Searching the map',
+    noResults: 'No match. Try the nearest district or city',
+    offlineSearch: 'You are offline, searching saved places only',
+    osm: 'Place and road data © OpenStreetMap',
+    edit: 'Edit',
+    share: 'Share',
+    shareText: (verdict: string, from: string, to: string) => `${verdict} on the trip from ${from} to ${to}. Check your own trip:`,
+    copied: 'Link copied, send it to friends',
+    sideDriver: 'the driver side',
+    sideDoor: 'the door side',
+    sitOn: 'Sit on',
+    slightlyBetter: 'is slightly better',
+    verdictTie: 'Both sides are about equal',
+    verdictNoMatter: 'It does not matter',
+    verdictNight: 'No sun',
+    subClear: (sunny: string, sunnyMin: string, other: string, otherMin: string, trip: string) =>
+      `Windows on <b>${sunny}</b> get about <b>${sunnyMin}</b> of sun on a ${trip} trip. ${other.charAt(0).toUpperCase()}${other.slice(1)}: only <b>${otherMin}</b>.`,
+    subTieSwitch: (first: string, firstFor: string, second: string) =>
+      `The sun is on ${first} for the first ${firstFor}, then moves to ${second}. The difference is small; the middle seats stay coolest.`,
+    subTie: (min: string) => `Both sides get similar sun (about ${min}). The middle seats stay coolest.`,
+    subNoMatterHigh: 'Sit anywhere: the sun is high over the roof and hardly any comes through the windows.',
+    subNoMatterLow: 'Sit anywhere: the sun stays ahead, behind, or too low, so neither side gets much.',
+    subNight: (sunrise: string) => `The whole trip is after dark${sunrise ? `; the sun rises at ${sunrise}` : ''}. Sit wherever you like.`,
+    teacherClear: 'Correct',
+    confidence: {
+      HIGH: 'Holds even if you leave 30 minutes earlier or later',
+      MEDIUM: 'Holds in most cases unless your time changes a lot',
+      LOW: 'Could flip if you leave 30 minutes earlier or later'
+    } as Record<ConfidenceLevel, string>,
+    bestSeats: 'Best seats',
+    seatPlan: 'Seats',
+    seatPlanHint: 'Yellow is sun, white is shade. The number under each seat is minutes of sun. Tap any seat.',
+    seatPlanLive: (time: string) => `Sun at ${time}`,
+    seatPlanTotal: 'Whole trip',
+    front: 'Front',
+    driver: 'Driver',
+    door: 'Door',
+    legendSun: 'Sun most of the time',
+    legendSome: 'Some sun',
+    legendShade: 'Shade',
+    seat: 'Seat',
+    seatSunMinutes: (m: string) => `${m} of sun`,
+    seatNoSun: 'No sun at all',
+    seatWindow: 'Window seat',
+    seatInner: 'Not by a window',
+    sunAlongTrip: 'Sun along the road',
+    rulerHint: 'Drag to see where the sun is at any moment',
+    rulerAverage: 'Back to whole trip',
+    departure: 'Leave',
+    arrival: 'Arrive',
+    sunNow: (side: string) => side,
+    spanOn: (side: string, from: string, to: string) => `${side} from ${from} to ${to}`,
+    dir: {
+      left: 'Sun on the driver side',
+      right: 'Sun on the door side',
+      front: 'Sun ahead',
+      rear: 'Sun behind',
+      overhead: 'Sun over the roof',
+      none: 'No sun'
+    } as Record<SunDirection, string>,
+    routeFigure: 'Road and sun',
+    routeCaption: (km: string, heading: string) => `${km} km, heading ${heading} on average.`,
+    north: 'N',
+    source: {
+      precomputed: 'Real road route from the map',
+      live: 'Real road route from the map',
+      cached: 'Real road route saved on your phone',
+      straight: 'Approximate straight line, no connection right now'
+    } as Record<RouteSource, string>,
+    compass: ['north', 'north east', 'east', 'south east', 'south', 'south west', 'west', 'north west'],
+    threeTitle: 'See it inside the vehicle',
+    threeLoad: 'Open the 3D view',
+    threeCost: 'Loads about 160 KB, once',
+    threeLoading: 'Preparing the vehicle',
+    threeFailed: '3D does not work on this phone. The seat map above shows the same result.',
+    threeViews: { outside: 'Outside', top: 'From above', seat: 'From your seat' },
+    threePlay: 'Play the trip',
+    threePause: 'Pause',
+    howTitle: 'How did we work it out?',
+    how: [
+      'We take the real road from OpenStreetMap and the direction the vehicle faces at every minute of the trip.',
+      'We compute where the sun is for every minute in Cairo time, on your phone, with no internet.',
+      'We cast a ray from each passenger towards the sun: through a window means sun, into the roof or a neighbor means shade.'
+    ],
+    howAssume: 'We assume a full vehicle, no curtains or tint, and a clear sky.',
+    sensitivityTitle: 'If your time changes',
+    scenario: { early: 'Leave 30 min earlier', late: 'Leave 30 min later', slow: 'Heavy traffic', fast: 'Empty road' } as Record<string, string>,
+    either: 'Equal',
+    weatherCloudy: (pct: number) => `About ${pct}% cloud cover; the sun may be softer than this.`,
+    busCurtains: 'Coaches usually have curtains, but the sunny side still runs hotter.',
+    newVersion: 'A new version is available',
+    update: 'Update',
+    calcYours: 'Check your own trip'
   }
-};
+} as const;
+
+export type Copy = (typeof COPY)[AppLanguage];
+
+export function sideName(side: Side, lang: AppLanguage): string {
+  const c = COPY[lang];
+  return side === 'left' ? c.sideDriver : c.sideDoor;
+}
+
+export function otherSide(side: Side): Side {
+  return side === 'left' ? 'right' : 'left';
+}
+
+/** Egyptian colloquial durations: "دقيقة", "دقيقتين", "5 دقايق", "ساعة و 20 دقيقة". */
+export function formatDuration(totalMinutes: number, lang: AppLanguage): string {
+  const m = Math.max(0, Math.round(totalMinutes));
+  if (lang === 'en') {
+    if (m < 60) return `${m} min`;
+    const h = Math.floor(m / 60);
+    const r = m % 60;
+    return r === 0 ? `${h} h` : `${h} h ${r} min`;
+  }
+  const minutes = (n: number) => (n === 1 ? 'دقيقة' : n === 2 ? 'دقيقتين' : n <= 10 ? `${n} دقايق` : `${n} دقيقة`);
+  const hours = (n: number) => (n === 1 ? 'ساعة' : n === 2 ? 'ساعتين' : n <= 10 ? `${n} ساعات` : `${n} ساعة`);
+  if (m === 0) return 'ولا دقيقة';
+  if (m < 60) return minutes(m);
+  const h = Math.floor(m / 60);
+  const r = m % 60;
+  if (r === 0) return hours(h);
+  if (r === 30) return `${hours(h)} ونص`;
+  if (r === 15) return `${hours(h)} وربع`;
+  return `${hours(h)} و${minutes(r)}`;
+}
+
+export function compassName(deg: number, lang: AppLanguage): string {
+  const names = COPY[lang].compass;
+  return names[Math.round((((deg % 360) + 360) % 360) / 45) % 8]!;
+}
+
+export function verdictHeadline(status: VerdictStatus, side: Side | 'either', lang: AppLanguage): { lead: string; mark: string; tail: string } {
+  const c = COPY[lang];
+  if (status === 'CLEAR' && side !== 'either') return { lead: `${c.sitOn} `, mark: sideName(side, lang), tail: '' };
+  if (status === 'LEANING' && side !== 'either') {
+    return lang === 'ar'
+      ? { lead: '', mark: sideName(side, lang), tail: ` ${c.slightlyBetter}` }
+      : { lead: `${c.sitOn} `, mark: sideName(side, lang), tail: ', slightly better' };
+  }
+  if (status === 'TIE') return { lead: '', mark: c.verdictTie, tail: '' };
+  if (status === 'NIGHT') return { lead: '', mark: c.verdictNight, tail: '' };
+  return { lead: '', mark: c.verdictNoMatter, tail: '' };
+}
+
+export function placeKindLabel(kind: PlaceKind, lang: AppLanguage): string {
+  const ar: Record<PlaceKind, string> = {
+    station: 'موقف',
+    city: 'مدينة',
+    town: 'مدينة',
+    district: 'حي',
+    village: 'قرية',
+    university: 'جامعة',
+    metro: 'مترو',
+    rail: 'محطة قطر',
+    poi: 'مكان',
+    gps: 'موقعك'
+  };
+  const en: Record<PlaceKind, string> = {
+    station: 'Terminal',
+    city: 'City',
+    town: 'Town',
+    district: 'District',
+    village: 'Village',
+    university: 'University',
+    metro: 'Metro',
+    rail: 'Railway',
+    poi: 'Place',
+    gps: 'You'
+  };
+  return (lang === 'ar' ? ar : en)[kind];
+}

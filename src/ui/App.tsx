@@ -1,173 +1,88 @@
 import { useEffect, useState } from 'react';
-import { useTripStore } from './store/trip-store.ts';
-import { COPY_DECK } from './i18n/copy.ts';
-import { HomeView } from './components/HomeView.tsx';
-import { ResultsView } from './components/ResultsView.tsx';
+import { useTripStore, warmPlaces } from './store/trip-store.ts';
+import { COPY } from './i18n/copy.ts';
+import { TripForm } from './components/TripForm.tsx';
+import { ResultView } from './components/ResultView.tsx';
+import { BrandMark, IconOffline } from './components/Icons.tsx';
 import { useNetworkStatus } from './hooks/use-network-status.ts';
 import { registerServiceWorker } from '../adapters/pwa-register.ts';
 
 export function App() {
-  const { lang, activeScreen, setLang, hydrateFromQuery } = useTripStore();
-  const copy = COPY_DECK[lang];
-  const { isOffline, saveData } = useNetworkStatus();
-  const [swUpdateAction, setSwUpdateAction] = useState<(() => void) | null>(null);
+  const lang = useTripStore((s) => s.lang);
+  const screen = useTripStore((s) => s.screen);
+  const setLang = useTripStore((s) => s.setLang);
+  const hydrateFromQuery = useTripStore((s) => s.hydrateFromQuery);
+  const c = COPY[lang];
+  const { isOffline } = useNetworkStatus();
+  const [toast, setToast] = useState<string | null>(null);
+  const [update, setUpdate] = useState<(() => void) | null>(null);
 
   useEffect(() => {
-    if (typeof window === 'undefined') return;
-
-    registerServiceWorker((activateUpdate) => {
-      setSwUpdateAction(() => activateUpdate);
-    });
-
-    if (window.location.search) {
-      void hydrateFromQuery(window.location.search);
-    }
+    if (import.meta.env.PROD) registerServiceWorker((activate) => setUpdate(() => activate));
+    if (window.location.search) void hydrateFromQuery(window.location.search);
+    warmPlaces();
   }, [hydrateFromQuery]);
 
+  useEffect(() => {
+    if (!toast) return;
+    const t = setTimeout(() => setToast(null), 3200);
+    return () => clearTimeout(t);
+  }, [toast]);
+
   return (
-    <div
-      dir={lang === 'ar' ? 'rtl' : 'ltr'}
-      lang={lang}
-      className="app-shell"
-      data-testid="app-shell"
-    >
-      {/* Compact 52px Top App Header */}
-      <header
-        style={{
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          minHeight: '48px',
-          padding: '4px 6px'
-        }}
-      >
-        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-          <span
-            aria-hidden="true"
-            style={{
-              width: '36px',
-              height: '36px',
-              borderRadius: '12px',
-              background: 'linear-gradient(135deg, #F59E0B 0%, #0EA5E9 100%)',
-              display: 'inline-flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              fontSize: '20px',
-              boxShadow: '0 4px 10px rgba(245, 158, 11, 0.25)'
-            }}
-          >
-            ☀️
-          </span>
-          <span
-            style={{
-              fontSize: '20px',
-              fontWeight: 900,
-              color: '#0F172A',
-              letterSpacing: '-0.02em'
-            }}
-          >
-            {copy.app_title}
-          </span>
+    <div className={`page${screen === 'result' ? ' page-wide' : ''}`} dir={lang === 'ar' ? 'rtl' : 'ltr'} lang={lang === 'ar' ? 'ar-EG' : 'en'} data-testid="app-shell">
+      <header className="topbar">
+        <div className="brand">
+          <BrandMark />
+          <span>{c.brand}</span>
         </div>
-
-        <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+        <div className="topbar-actions">
           {isOffline && (
-            <span
-              data-testid="offline-status-badge"
-              style={{
-                fontSize: '11px',
-                fontWeight: 800,
-                padding: '4px 10px',
-                borderRadius: '999px',
-                background: '#FEF3C7',
-                color: '#92400E',
-                border: '1px solid #F59E0B'
-              }}
-            >
-              {copy.offline_badge}
+            <span className="chip-status" data-testid="offline-badge">
+              <IconOffline style={{ width: 16, height: 16 }} />
+              {c.offline}
             </span>
           )}
-
-          {!isOffline && saveData && (
-            <span
-              data-testid="savedata-status-badge"
-              style={{
-                fontSize: '11px',
-                fontWeight: 800,
-                padding: '4px 10px',
-                borderRadius: '999px',
-                background: '#E0F2FE',
-                color: '#0369A1',
-                border: '1px solid #0EA5E9'
-              }}
-            >
-              {lang === 'ar' ? 'توفير بيانات ⚡' : 'Save-Data ⚡'}
-            </span>
-          )}
-
           <button
             type="button"
-            data-testid="lang-toggle-btn"
+            className="icon-btn"
             onClick={() => setLang(lang === 'ar' ? 'en' : 'ar')}
-            className="touch-target"
-            aria-label={lang === 'ar' ? 'Switch to English' : 'التبديل للعربية'}
-            style={{
-              minHeight: '48px',
-              minWidth: '48px',
-              padding: '0 12px',
-              borderRadius: '12px',
-              background: '#FFFFFF',
-              border: '1.5px solid #CBD5E1',
-              color: '#0F172A',
-              fontSize: '13px',
-              fontWeight: 800
-            }}
+            aria-label={c.langToggleLabel}
+            data-testid="lang-toggle"
           >
-            {lang === 'ar' ? 'EN' : 'عربي'}
+            {c.langToggle}
           </button>
         </div>
       </header>
 
-      {/* Non-intrusive Service Worker Update Toast (Story 5.1 AC-3) */}
-      {swUpdateAction && (
-        <div
-          role="status"
-          data-testid="sw-update-toast"
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            gap: '8px',
-            padding: '8px 12px',
-            borderRadius: '12px',
-            background: '#0F172A',
-            color: '#FFFFFF',
-            fontSize: '12px',
-            fontWeight: 700
-          }}
-        >
-          <span>
-            {lang === 'ar' ? '✨ تحديث جديد متاح للتطبيق' : '✨ New version available'}
-          </span>
-          <button
-            type="button"
-            onClick={() => swUpdateAction()}
-            style={{
-              padding: '4px 10px',
-              borderRadius: '8px',
-              border: 'none',
-              background: '#0EA5E9',
-              color: '#FFFFFF',
-              fontWeight: 800,
-              cursor: 'pointer'
-            }}
-          >
-            {lang === 'ar' ? 'تحديث' : 'Update'}
+      {screen === 'input' ? (
+        <>
+          <p className="intro" dangerouslySetInnerHTML={{ __html: c.intro }} />
+          <TripForm />
+        </>
+      ) : (
+        <ResultView onToast={setToast} />
+      )}
+
+      <footer className="footer">
+        {lang === 'ar'
+          ? 'مكان الشمس محسوب على موبايلك. الأماكن والطرق من © OpenStreetMap. مش بنحفظ مكانك.'
+          : 'Sun position is computed on your phone. Places and roads © OpenStreetMap. Your location is never stored.'}
+      </footer>
+
+      {toast && (
+        <div className="toast" role="status">
+          <span>{toast}</span>
+        </div>
+      )}
+      {update && (
+        <div className="toast" role="status" data-testid="update-toast">
+          <span>{c.newVersion}</span>
+          <button type="button" onClick={() => update()}>
+            {c.update}
           </button>
         </div>
       )}
-
-      {activeScreen === 'input' ? <HomeView /> : <ResultsView />}
     </div>
   );
 }
