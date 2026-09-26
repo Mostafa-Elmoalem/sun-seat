@@ -70,7 +70,7 @@ export const COPY = {
     verdictNoMatter: 'مش فارقة',
     verdictNight: 'مفيش شمس',
     subClear: (sunny: string, sunnyMin: string, other: string, otherMin: string, trip: string) =>
-      `كرسي الشباك <b>${sunny}</b> هياخد شمس حوالي <b>${sunnyMin}</b> من رحلة ${trip}، و<b>${other}</b> حوالي <b>${otherMin}</b> بس.`,
+      `كرسي الشباك <b>${sunny}</b> هياخد شمس حوالي <b>${sunnyMin}</b> في المتوسط من رحلة ${trip}، و<b>${other}</b> حوالي <b>${otherMin}</b> بس.`,
     subTieSwitch: (first: string, firstFor: string, second: string) =>
       `الشمس هتبقى ${first} أول ${firstFor}، وبعد كده هتلف ${second}. الفرق بين الجنبين صغير، اقعد في النص لو لقيت.`,
     subTie: (min: string) => `الجنبين هياخدوا شمس قريبة من بعض (حوالي ${min}). الكراسي اللي في النص أبرد.`,
@@ -207,7 +207,7 @@ export const COPY = {
     verdictNoMatter: 'It does not matter',
     verdictNight: 'No sun',
     subClear: (sunny: string, sunnyMin: string, other: string, otherMin: string, trip: string) =>
-      `A window seat on <b>${sunny}</b> gets about <b>${sunnyMin}</b> of sun on a ${trip} trip; on <b>${other}</b>, only <b>${otherMin}</b>.`,
+      `A window seat on <b>${sunny}</b> gets about <b>${sunnyMin}</b> of sun on average over a ${trip} trip; on <b>${other}</b>, only <b>${otherMin}</b>.`,
     subTieSwitch: (first: string, firstFor: string, second: string) =>
       `The sun is on ${first} for the first ${firstFor}, then moves to ${second}. The difference is small; the middle seats stay coolest.`,
     subTie: (min: string) => `Both sides get similar sun (about ${min}). The middle seats stay coolest.`,

@@ -593,23 +593,23 @@ export class VehicleScene {
   }
 
   private buildGroundSun(): void {
-    const disc = new THREE.Mesh(this.track(new THREE.CircleGeometry(0.42, 32)), this.track(new THREE.MeshBasicMaterial({ color: COLORS.sun })));
+    const disc = new THREE.Mesh(this.track(new THREE.CircleGeometry(0.3, 32)), this.track(new THREE.MeshBasicMaterial({ color: COLORS.sun })));
     disc.rotation.x = -Math.PI / 2;
     disc.position.y = 0.03;
-    const rim = new THREE.Mesh(this.track(new THREE.RingGeometry(0.42, 0.5, 32)), this.track(new THREE.MeshBasicMaterial({ color: 0xf5b800 })));
+    const rim = new THREE.Mesh(this.track(new THREE.RingGeometry(0.3, 0.37, 32)), this.track(new THREE.MeshBasicMaterial({ color: 0xf5b800 })));
     rim.rotation.x = -Math.PI / 2;
     rim.position.y = 0.031;
     this.groundSun.add(disc, rim);
     const rayMat = this.track(new THREE.MeshBasicMaterial({ color: 0xf5b800 }));
-    const shaft = this.track(new THREE.BoxGeometry(0.07, 0.01, 0.8));
-    const head = this.track(new THREE.ConeGeometry(0.13, 0.26, 3));
-    for (const off of [-0.7, 0, 0.7]) {
+    const shaft = this.track(new THREE.BoxGeometry(0.06, 0.01, 0.42));
+    const head = this.track(new THREE.ConeGeometry(0.1, 0.2, 3));
+    for (const off of [-0.42, 0, 0.42]) {
       const ray = new THREE.Group();
       const body = new THREE.Mesh(shaft, rayMat);
-      body.position.set(off, 0.03, -1.05);
+      body.position.set(off, 0.03, -0.62);
       const tip = new THREE.Mesh(head, rayMat);
       tip.rotation.x = -Math.PI / 2;
-      tip.position.set(off, 0.03, -1.55);
+      tip.position.set(off, 0.03, -0.92);
       ray.add(body, tip);
       this.groundSun.add(ray);
     }
@@ -649,7 +649,8 @@ export class VehicleScene {
     // Warmer, weaker light near the horizon.
     const el = Math.max(0, sun.elevationDeg);
     const warm = Math.min(1, el / 25);
-    this.sunLight.color.setRGB(1, 0.8 + 0.16 * warm, 0.5 + 0.3 * warm);
+    // Warm sunlight against a cool sky fill, so lit patches read yellow and shade reads blue-gray.
+    this.sunLight.color.setRGB(1, 0.82 + 0.08 * warm, 0.42 + 0.18 * warm);
     this.sunLight.intensity = up ? 1.8 + 2.6 * Math.min(1, el / 35) : 0;
 
     // Ground sun marker: outside the vehicle on the sun's side, rays pointing at the cabin.
@@ -657,7 +658,8 @@ export class VehicleScene {
     this.groundSun.visible = up && flat.lengthSq() > 1e-4 && this.view === 'top';
     if (flat.lengthSq() > 1e-4) {
       flat.normalize();
-      const reach = Math.abs(flat.x) * (this.vehicle.dimensions.widthM / 2) + Math.abs(flat.z) * this.halfL + 2.2;
+      // Just outside the body on the sunny flank, inside the top-view frame.
+      const reach = Math.abs(flat.x) * (this.vehicle.dimensions.widthM / 2) + Math.abs(flat.z) * this.halfL + 1.0;
       this.groundSun.position.copy(flat.clone().multiplyScalar(reach));
       this.groundSun.rotation.y = Math.atan2(flat.x, flat.z);
     }
@@ -667,7 +669,7 @@ export class VehicleScene {
     (this.scene.background as THREE.Color).copy(sky);
     this.scene.fog!.color.copy(sky);
     this.hemi.intensity = up ? 0.6 : 0.35;
-    this.hemi.color.set(up ? 0xdfeaf7 : 0x3a4a7a);
+    this.hemi.color.set(up ? 0xcfdcf2 : 0x3a4a7a);
 
     // Sun path arc for the day.
     const pts = sun.path.filter((p) => p[2] > -0.05).map((p) => new THREE.Vector3(p[0], p[2], -p[1]).normalize().multiplyScalar(R));
@@ -731,7 +733,6 @@ export class VehicleScene {
 
   setView(view: ViewMode): void {
     this.view = view;
-    const L = this.vehicle.dimensions.lengthM;
     const isBus = this.vehicle.type === 'bus';
     const seat = this.vehicle.seats.find((s) => s.id === this.selectedSeatId) ?? this.vehicle.seats[0]!;
 
@@ -757,17 +758,16 @@ export class VehicleScene {
       this.camera.fov = 40;
       c.minDistance = isBus ? 9 : 5;
       c.maxDistance = isBus ? 34 : 18;
-      c.target.set(0, isBus ? 1.6 : 1.1, 0);
-      // Stand on the sunny flank so the light coming through the windows is in view.
+      c.target.set(0, isBus ? 1.5 : 1.0, isBus ? 0 : 0.2);
+      // Front three-quarter view from the sunny flank: the nose, the side glass and the light coming in.
       const side = this.lastSun && this.lastSun.elevationDeg > 0 && Math.abs(this.lastSun.ux) > 0.05 ? Math.sign(this.lastSun.ux) : 1;
-      this.camera.position.set(side * (isBus ? 10 : 5.6), isBus ? 5.5 : 3.3, isBus ? 9 : 4.2);
+      this.camera.position.set(side * (isBus ? 11 : 6.2), isBus ? 5.2 : 3.0, isBus ? -10 : -5.4);
     } else if (view === 'top') {
       this.camera.fov = 38;
       c.minDistance = isBus ? 10 : 5;
       c.maxDistance = isBus ? 34 : 16;
       c.target.set(0, 0.8, 0);
-      this.camera.position.set(0.001, isBus ? 21 : 9.6, isBus ? 3.5 : 1.9);
-      if (!isBus && L < 6) this.camera.position.y = 9.6;
+      this.camera.position.set(0.001, isBus ? 22 : 10.6, isBus ? 3.5 : 2.1);
     } else {
       this.camera.fov = 80;
       const head = this.toThree(seat.position.x, seat.position.y, seat.position.z + 0.8);

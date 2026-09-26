@@ -138,7 +138,13 @@ export function TripRuler({
             <b style={{ color: 'var(--ink)' }}>{formatTime(current.timeMs, lang)}</b>
             {' · '}
             {c.dir[current.sunSide]}
-            {current.isNight ? '' : lang === 'ar' ? ` · ارتفاع الشمس ${Math.round(current.solarElevationDeg)}°` : ` · sun ${Math.round(current.solarElevationDeg)}° high`}
+            {current.isNight ? null : (
+              <>
+                {lang === 'ar' ? ' · ارتفاع الشمس ' : ' · sun '}
+                <bdi dir="ltr" style={{ whiteSpace: 'nowrap' }}>{Math.round(current.solarElevationDeg)}°</bdi>
+                {lang === 'ar' ? '' : ' high'}
+              </>
+            )}
           </span>
         </p>
       )}

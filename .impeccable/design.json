@@ -1,0 +1,114 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-09-26T18:20:00+03:00",
+  "title": "Design System: اقعد فين؟",
+  "extensions": {
+    "colorMeta": {
+      "paper": { "role": "neutral", "displayName": "Graph Paper", "canonical": "#fbfcfe", "tonalRamp": ["#1d2126", "#3a3f47", "#5a616b", "#8f98a4", "#c3cad3", "#e1e8f2", "#eef2f7", "#fbfcfe"] },
+      "ink": { "role": "primary", "displayName": "Ballpoint Ink", "canonical": "#1b2f7c", "tonalRamp": ["#0f1a47", "#1b2f7c", "#243c95", "#3d55a8", "#6f82c4", "#a9b6e0", "#dde4f6", "#e8edf9"] },
+      "teacher-red": { "role": "secondary", "displayName": "Teacher Red", "canonical": "#cc1f37", "tonalRamp": ["#5e0d19", "#8f1426", "#cc1f37", "#e04a5e", "#ec8190", "#f5b6bf", "#fbdde1", "#fdecee"] },
+      "highlighter": { "role": "tertiary", "displayName": "Highlighter", "canonical": "#ffe03a", "tonalRamp": ["#6b4d00", "#a07400", "#c99700", "#f5b800", "#ffd21f", "#ffe03a", "#ffe766", "#fff4b8"] },
+      "graphite": { "role": "neutral", "displayName": "Graphite", "canonical": "#555c66", "tonalRamp": ["#1d2126", "#2c3138", "#3a3f47", "#555c66", "#6f7782", "#8f98a4", "#c3cad3", "#e1e8f2"] }
+    },
+    "typographyMeta": {
+      "verdict": { "displayName": "Verdict", "purpose": "The answer, once per result, circled in red." },
+      "field": { "displayName": "Field", "purpose": "Values written on the ruled from and to lines; primary button label." },
+      "teacher-note": { "displayName": "Teacher Note", "purpose": "Ruq'ah margin notes of five words or fewer." }
+    },
+    "shadows": [
+      { "name": "page-on-desk", "value": "0 1px 2px rgba(27,47,124,0.08), 0 18px 40px -18px rgba(27,47,124,0.25)", "purpose": "The notebook page on wide screens." },
+      { "name": "primary-action", "value": "0 8px 20px -8px rgba(27,47,124,0.55)", "purpose": "The single full-width ink button." },
+      { "name": "floating", "value": "0 12px 28px -10px rgba(0,0,0,0.45)", "purpose": "Toasts." }
+    ],
+    "motion": [
+      { "name": "ease-out", "value": "cubic-bezier(0.16, 1, 0.3, 1)", "purpose": "All state transitions and pen strokes." },
+      { "name": "ink-draw", "value": "stroke-dashoffset 1 to 0, 620 ms", "purpose": "Red ring around the verdict and best seats, route inking. Skipped under reduced motion." },
+      { "name": "highlight-in", "value": "scaleX 0 to 1 from reading-start, 700 ms", "purpose": "Highlighter strokes on the side comparison." }
+    ],
+    "breakpoints": [
+      { "name": "page-lift", "value": "560px" },
+      { "name": "two-column-result", "value": "980px" }
+    ]
+  },
+  "components": [
+    {
+      "name": "Primary Button",
+      "kind": "button",
+      "refersTo": "button-primary",
+      "description": "The one action per screen, full width in the thumb zone.",
+      "html": "<button class=\"ds-cta\">اعرف أقعد فين</button>",
+      "css": ".ds-cta { width: 100%; min-height: 60px; border: 0; border-radius: 14px; background: #1b2f7c; color: #fff; font-family: 'Readex Pro', sans-serif; font-size: 19px; font-weight: 700; box-shadow: 0 8px 20px -8px rgba(27,47,124,0.55); cursor: pointer; transition: background-color 160ms cubic-bezier(0.16,1,0.3,1), transform 120ms; } .ds-cta:hover { background: #243c95; } .ds-cta:active { transform: translateY(1px); } .ds-cta:focus-visible { outline: 3px solid #3d55a8; outline-offset: 2px; }"
+    },
+    {
+      "name": "Secondary Button",
+      "kind": "button",
+      "refersTo": "button-secondary",
+      "description": "Optional heavy action, such as opening the 3D view.",
+      "html": "<button class=\"ds-cta-secondary\">افتح العربية 3D</button>",
+      "css": ".ds-cta-secondary { min-height: 60px; padding: 0 24px; border: 2px solid #1b2f7c; border-radius: 14px; background: #fbfcfe; color: #1b2f7c; font-family: 'Readex Pro', sans-serif; font-size: 19px; font-weight: 700; cursor: pointer; } .ds-cta-secondary:hover { background: #e8edf9; } .ds-cta-secondary:focus-visible { outline: 3px solid #3d55a8; outline-offset: 2px; }"
+    },
+    {
+      "name": "Ruled Line Field",
+      "kind": "input",
+      "refersTo": "line-field",
+      "description": "From and to written on a notebook line; tapping opens the place sheet.",
+      "html": "<button class=\"ds-line\"><span class=\"ds-line-tag\">من</span><span class=\"ds-line-value\">موقف عبود</span></button>",
+      "css": ".ds-line { display: grid; grid-template-columns: 40px 1fr; align-items: center; width: 100%; min-height: 64px; border: 0; border-bottom: 2px solid #c3cad3; background: transparent; text-align: start; font-family: 'Readex Pro', sans-serif; cursor: pointer; direction: rtl; } .ds-line:hover, .ds-line:focus-visible { border-bottom-color: #3d55a8; outline: none; } .ds-line-tag { font-size: 14px; font-weight: 600; color: #555c66; } .ds-line-value { font-size: 19px; font-weight: 600; color: #1b2f7c; }"
+    },
+    {
+      "name": "Choice Pill",
+      "kind": "chip",
+      "refersTo": "pill",
+      "description": "Quick picks for time and 3D views; selected fills with ink.",
+      "html": "<button class=\"ds-pill\" aria-pressed=\"true\">دلوقتي</button><button class=\"ds-pill\" aria-pressed=\"false\">بعد نص ساعة</button>",
+      "css": ".ds-pill { min-height: 48px; padding: 0 16px; margin: 4px; border-radius: 999px; border: 1.5px solid #c3cad3; background: #fbfcfe; color: #1b2f7c; font-family: 'Readex Pro', sans-serif; font-size: 15px; font-weight: 500; cursor: pointer; } .ds-pill:hover { border-color: #3d55a8; } .ds-pill[aria-pressed='true'] { background: #1b2f7c; border-color: #1b2f7c; color: #fff; } .ds-pill:focus-visible { outline: 3px solid #3d55a8; outline-offset: 2px; }"
+    },
+    {
+      "name": "Verdict",
+      "kind": "custom",
+      "refersTo": "verdict",
+      "description": "The answer circled with a red pen stroke.",
+      "html": "<h1 class=\"ds-verdict\" dir=\"rtl\">اقعد <span class=\"ds-mark\">ناحية الباب<svg viewBox=\"0 0 100 40\" preserveAspectRatio=\"none\"><path d=\"M 58 3.5 C 84 2.5, 99 10, 98 21 C 97 33, 70 38.5, 44 37.5 C 17 36.5, 1.5 30, 2.5 19 C 3.5 8.5, 25 2, 54 2.8 C 66 3.2, 76 5.5, 83 8.5\"/></svg></span></h1>",
+      "css": ".ds-verdict { font-family: 'Readex Pro', sans-serif; font-size: 44px; font-weight: 700; line-height: 1.2; color: #1b2f7c; } .ds-mark { position: relative; display: inline-block; padding: 0 12px; } .ds-mark svg { position: absolute; inset: -20% -2% -24% -2%; width: 104%; height: 144%; overflow: visible; } .ds-mark path { fill: none; stroke: #cc1f37; stroke-width: 3.2; stroke-linecap: round; vector-effect: non-scaling-stroke; }"
+    },
+    {
+      "name": "Seat",
+      "kind": "custom",
+      "description": "A cushion in the plan view: paper in shade, highlighter plus hatching in sun, red ring when best.",
+      "html": "<svg width=\"160\" height=\"80\" viewBox=\"0 0 160 80\"><defs><pattern id=\"ds-h\" width=\"6\" height=\"6\" patternUnits=\"userSpaceOnUse\" patternTransform=\"rotate(45)\"><line x1=\"0\" y1=\"0\" x2=\"0\" y2=\"6\" stroke=\"#6b4d00\" opacity=\".55\"/></pattern></defs><rect x=\"8\" y=\"12\" width=\"64\" height=\"54\" rx=\"9\" fill=\"#ffd21f\" stroke=\"#c99700\" stroke-width=\"1.6\"/><rect x=\"8\" y=\"12\" width=\"64\" height=\"54\" rx=\"9\" fill=\"url(#ds-h)\"/><text x=\"40\" y=\"42\" text-anchor=\"middle\" font-size=\"19\" font-weight=\"700\" fill=\"#1b2f7c\">3</text><rect x=\"88\" y=\"12\" width=\"64\" height=\"54\" rx=\"9\" fill=\"#fbfcfe\" stroke=\"#9aa3ae\" stroke-width=\"1.6\"/><text x=\"120\" y=\"42\" text-anchor=\"middle\" font-size=\"19\" font-weight=\"700\" fill=\"#1b2f7c\">5</text><ellipse cx=\"120\" cy=\"39\" rx=\"40\" ry=\"35\" fill=\"none\" stroke=\"#cc1f37\" stroke-width=\"2.6\"/></svg>",
+      "css": ""
+    }
+  ],
+  "narrative": {
+    "northStar": "The Geography Notebook (كراسة الجغرافيا)",
+    "overview": "The answer is a solved homework problem. Every screen is a page of 5 mm graph paper with a red margin rule on the reading-start edge. The rider's trip is written on ruled lines in ballpoint ink, the road is inked on the grid, the sun angle is measured with a protractor, and the teacher circles the right answer in red. It is an Operate surface first: bright and high contrast for a microbus terminal in direct sun, with color scarce and always meaningful.",
+    "keyCharacteristics": [
+      "Bright cool paper with a faint measuring grid; text is dark ink, never gray-on-gray",
+      "One primary action per screen, full width, in the thumb zone",
+      "The verdict circled by a red pen stroke; best seats ringed the same way",
+      "Sun drawn with highlighter fill plus graphite hatching whose density grows with exposure",
+      "Vehicle diagrams, rulers and maps drawn as crisp vector geometry, never mirrored by RTL"
+    ],
+    "rules": [
+      { "name": "The One Job Rule", "body": "Red means this is the answer or this is wrong. Yellow means sun is here. If a color is doing anything else, it is wrong.", "section": "colors" },
+      { "name": "The Shade Is Paper Rule", "body": "Shade has no color of its own. A seat in shade is clean paper with its number in ink; absence is drawn deliberately, not left blank.", "section": "colors" },
+      { "name": "The Teacher Writes Little Rule", "body": "Ruq'ah is for notes of five words or fewer. Anything a rider must parse, compare or act on is set in Readex Pro.", "section": "typography" },
+      { "name": "The Tabular Numbers Rule", "body": "Times, minutes and seat numbers use tabular figures so columns and rulers line up.", "section": "typography" },
+      { "name": "The Unmirrored Figure Rule", "body": "Seat plans, the 3D slot and the route map are laid out left to right in every language: the driver side is on the left because it is on the left.", "section": "layout" }
+    ],
+    "dos": [
+      "Do name sides \"ناحية السواق\" and \"ناحية الباب\"; never شمال or يمين for a side.",
+      "Do keep every functional string in ink or text color on paper; graphite is the lightest text allowed.",
+      "Do mark sun with highlighter plus hatching so it still reads when the screen washes out.",
+      "Do keep touch targets at 48 px or more and the primary action at the bottom of the form.",
+      "Do draw diagrams as exact vector geometry: rulers, rings, arrows, plans."
+    ],
+    "donts": [
+      "Don't mirror vehicle diagrams, the 3D view or maps for RTL.",
+      "Don't use red or yellow for anything but the answer, errors and sun.",
+      "Don't put content in stacked cards or card grids; blocks sit on the paper.",
+      "Don't use emoji or Unicode glyphs as icons; icons are the authored 1.9 stroke SVG set.",
+      "Don't use em dashes or en dashes in any copy."
+    ]
+  }
+}
