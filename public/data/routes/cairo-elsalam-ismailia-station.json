@@ -1,9 +1,0 @@
-{
-  "routeId": "cairo-elsalam-ismailia-station",
-  "originId": "cairo-elsalam",
-  "destinationId": "ismailia-station",
-  "distanceKm": 102.9,
-  "carDurationMin": 77,
-  "encodedPolyline": "g_`wDa}w~DfU{F{hBu`KatAg_TugAwwIcv\\uij@mdPkua@qiDaeByqNuuT}uBicCet@{FzGmvE}WOiKc|Am_BycBqc@y{BuqA~y@",
-  "isApproximate": false
-}

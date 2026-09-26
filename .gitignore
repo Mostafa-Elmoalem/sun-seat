@@ -34,3 +34,9 @@ Thumbs.db
 *.njsproj
 *.sln
 *.sw?
+
+# Impeccable working files (keep surfaces, DESIGN sidecars)
+.impeccable/review/
+.impeccable/tmp/
+.impeccable/decision/
+scripts/.cache/
