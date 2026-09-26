@@ -1,0 +1,170 @@
+{
+  "id": "microbus-14",
+  "nameAr": "ميكروباص تويوتا (14 راكب)",
+  "nameEn": "Toyota HiAce Microbus (14-seater)",
+  "type": "microbus",
+  "totalSeats": 14,
+  "speedFactor": 1.15,
+  "stopOverheadMin": 10,
+  "hasCurtains": false,
+  "dimensions": {
+    "lengthM": 5.38,
+    "widthM": 1.88,
+    "heightM": 2.28,
+    "roofOverhangM": 0.15
+  },
+  "windows": [
+    { "id": "win-f-shield", "side": "front", "yStart": 0.2, "yEnd": 0.8, "zBottom": 0.95, "zTop": 1.85 },
+    { "id": "win-r-shield", "side": "rear", "yStart": 5.1, "yEnd": 5.35, "zBottom": 1.05, "zTop": 1.75 },
+    { "id": "win-l-front", "side": "left", "yStart": 0.8, "yEnd": 1.55, "zBottom": 0.95, "zTop": 1.65 },
+    { "id": "win-l-row1", "side": "left", "yStart": 1.6, "yEnd": 2.5, "zBottom": 0.95, "zTop": 1.70 },
+    { "id": "win-l-row2", "side": "left", "yStart": 2.55, "yEnd": 3.45, "zBottom": 0.95, "zTop": 1.70 },
+    { "id": "win-l-row3", "side": "left", "yStart": 3.5, "yEnd": 4.95, "zBottom": 0.95, "zTop": 1.70 },
+    { "id": "win-r-front", "side": "right", "yStart": 0.8, "yEnd": 1.55, "zBottom": 0.95, "zTop": 1.65 },
+    { "id": "win-r-door", "side": "right", "yStart": 1.6, "yEnd": 2.5, "zBottom": 0.95, "zTop": 1.70 },
+    { "id": "win-r-row2", "side": "right", "yStart": 2.55, "yEnd": 3.45, "zBottom": 0.95, "zTop": 1.70 },
+    { "id": "win-r-row3", "side": "right", "yStart": 3.5, "yEnd": 4.95, "zBottom": 0.95, "zTop": 1.70 }
+  ],
+  "seats": [
+    {
+      "id": 1,
+      "labelAr": "كرسي 1 (وسط أمام السائق)",
+      "labelEn": "Seat 1 (Front Middle)",
+      "row": 0,
+      "col": 1,
+      "side": "middle",
+      "isWindow": false,
+      "position": { "x": -0.05, "y": 1.15, "z": 1.35 }
+    },
+    {
+      "id": 2,
+      "labelAr": "كرسي 2 (يمين الباب الأمامي)",
+      "labelEn": "Seat 2 (Front Right)",
+      "row": 0,
+      "col": 2,
+      "side": "right",
+      "isWindow": true,
+      "position": { "x": 0.55, "y": 1.15, "z": 1.35 }
+    },
+    {
+      "id": 3,
+      "labelAr": "كرسي 3 (صف 1 - شباك شمال)",
+      "labelEn": "Seat 3 (Row 1 - Left Window)",
+      "row": 1,
+      "col": 0,
+      "side": "left",
+      "isWindow": true,
+      "position": { "x": -0.65, "y": 2.05, "z": 1.35 }
+    },
+    {
+      "id": 4,
+      "labelAr": "كرسي 4 (صف 1 - وسط)",
+      "labelEn": "Seat 4 (Row 1 - Middle)",
+      "row": 1,
+      "col": 1,
+      "side": "middle",
+      "isWindow": false,
+      "position": { "x": -0.15, "y": 2.05, "z": 1.35 }
+    },
+    {
+      "id": 5,
+      "labelAr": "كرسي 5 (صف 1 - قلاب يمين)",
+      "labelEn": "Seat 5 (Row 1 - Right Jump)",
+      "row": 1,
+      "col": 2,
+      "side": "right",
+      "isWindow": true,
+      "position": { "x": 0.55, "y": 2.05, "z": 1.35 }
+    },
+    {
+      "id": 6,
+      "labelAr": "كرسي 6 (صف 2 - شباك شمال)",
+      "labelEn": "Seat 6 (Row 2 - Left Window)",
+      "row": 2,
+      "col": 0,
+      "side": "left",
+      "isWindow": true,
+      "position": { "x": -0.65, "y": 2.95, "z": 1.35 }
+    },
+    {
+      "id": 7,
+      "labelAr": "كرسي 7 (صف 2 - وسط)",
+      "labelEn": "Seat 7 (Row 2 - Middle)",
+      "row": 2,
+      "col": 1,
+      "side": "middle",
+      "isWindow": false,
+      "position": { "x": -0.15, "y": 2.95, "z": 1.35 }
+    },
+    {
+      "id": 8,
+      "labelAr": "كرسي 8 (صف 2 - قلاب يمين)",
+      "labelEn": "Seat 8 (Row 2 - Right Jump)",
+      "row": 2,
+      "col": 2,
+      "side": "right",
+      "isWindow": true,
+      "position": { "x": 0.55, "y": 2.95, "z": 1.35 }
+    },
+    {
+      "id": 9,
+      "labelAr": "كرسي 9 (صف 3 - شباك شمال)",
+      "labelEn": "Seat 9 (Row 3 - Left Window)",
+      "row": 3,
+      "col": 0,
+      "side": "left",
+      "isWindow": true,
+      "position": { "x": -0.65, "y": 3.85, "z": 1.35 }
+    },
+    {
+      "id": 10,
+      "labelAr": "كرسي 10 (صف 3 - وسط)",
+      "labelEn": "Seat 10 (Row 3 - Middle)",
+      "row": 3,
+      "col": 1,
+      "side": "middle",
+      "isWindow": false,
+      "position": { "x": -0.15, "y": 3.85, "z": 1.35 }
+    },
+    {
+      "id": 11,
+      "labelAr": "كرسي 11 (صف 3 - قلاب/شباك يمين)",
+      "labelEn": "Seat 11 (Row 3 - Right)",
+      "row": 3,
+      "col": 2,
+      "side": "right",
+      "isWindow": true,
+      "position": { "x": 0.55, "y": 3.85, "z": 1.35 }
+    },
+    {
+      "id": 12,
+      "labelAr": "كرسي 12 (الكنبة الأخيرة - شباك شمال)",
+      "labelEn": "Seat 12 (Last Row - Left Window)",
+      "row": 4,
+      "col": 0,
+      "side": "left",
+      "isWindow": true,
+      "position": { "x": -0.65, "y": 4.75, "z": 1.35 }
+    },
+    {
+      "id": 13,
+      "labelAr": "كرسي 13 (الكنبة الأخيرة - وسط)",
+      "labelEn": "Seat 13 (Last Row - Middle)",
+      "row": 4,
+      "col": 1,
+      "side": "middle",
+      "isWindow": false,
+      "position": { "x": 0.0, "y": 4.75, "z": 1.35 }
+    },
+    {
+      "id": 14,
+      "labelAr": "كرسي 14 (الكنبة الأخيرة - شباك يمين)",
+      "labelEn": "Seat 14 (Last Row - Right Window)",
+      "row": 4,
+      "col": 2,
+      "side": "right",
+      "isWindow": true,
+      "position": { "x": 0.65, "y": 4.75, "z": 1.35 }
+    }
+  ]
+}
