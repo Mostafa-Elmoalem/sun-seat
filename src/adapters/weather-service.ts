@@ -1,5 +1,3 @@
-import type { AppLanguage } from '../ui/i18n/copy.ts';
-
 export type WeatherCondition = 'CLEAR' | 'PARTLY_CLOUDY' | 'OVERCAST';
 
 export interface WeatherData {
@@ -50,28 +48,6 @@ export function shouldSkipNetworkExtras(hints?: NetworkConnectionHints): boolean
   if (conn.effectiveType === 'slow-2g' || conn.effectiveType === '2g') return true;
 
   return false;
-}
-
-/**
- * Formats non-blocking colloquial Arabic / English weather badge copy (Story 5.2 AC-3).
- */
-export function formatWeatherBadgeCopy(weather: WeatherData, lang: AppLanguage): string {
-  const pct = Math.round(weather.cloudCoverPct);
-  if (weather.condition === 'OVERCAST' || pct > 75) {
-    return lang === 'ar'
-      ? `☁️ الجو مغيم دلوقتي (${pct}% غيوم) — حرارة الشمس أخف على كل الكراسي`
-      : `☁️ Heavy cloud cover (${pct}%) — sun heat is milder across all seats`;
-  }
-
-  if (weather.condition === 'PARTLY_CLOUDY' || pct >= 35) {
-    return lang === 'ar'
-      ? `⛅ غيوم جزئية (${pct}% غيم) — الجنب الضل لسه أضمن وأبرد`
-      : `⛅ Partly cloudy (${pct}% cloud) — shaded side is still cooler`;
-  }
-
-  return lang === 'ar'
-    ? `☀️ سما صافية (مؤشر UV ${weather.uvIndex.toFixed(1)}) — التزم بالجنب الضل`
-    : `☀️ Clear sky (UV ${weather.uvIndex.toFixed(1)}) — stick to the shaded side`;
 }
 
 function classifyCondition(cloudCoverPct: number): WeatherCondition {

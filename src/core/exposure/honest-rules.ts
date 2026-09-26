@@ -1,74 +1,45 @@
-/**
- * Honest Output Policy Rules for sun exposure.
- * Evaluates whether sun recommendations are meaningful or if edge states apply
- * (e.g. total night, overhead midday sun, or practical tie).
- */
+import type { Side, VerdictStatus } from '../types/vehicle.ts';
 
-export interface SegmentSunSample {
-  elevation: number;
-  relativeAngle: number;
+/**
+ * Honest output policy. Turns per-side sun minutes into a verdict, and says so
+ * plainly when the side does not matter or the two sides are too close to call.
+ *
+ * Inputs are the average direct-sun minutes of the window seats on each side.
+ */
+export interface VerdictInputs {
+  leftSunMinutes: number;
+  rightSunMinutes: number;
+  tripMinutes: number;
+  daylightMinutes: number;
 }
 
-export type HonestRuleResult =
-  | { type: 'NIGHT'; textAr: string; descriptionEn: string }
-  | { type: 'OVERHEAD_SUN'; textAr: string; descriptionEn: string }
-  | { type: 'TIE'; textAr: string; descriptionEn: string }
-  | { type: 'DETERMINISTIC'; winner: 'left' | 'right'; diff: number };
+export interface VerdictDecision {
+  status: VerdictStatus;
+  recommendedSide: Side | 'either';
+}
 
-/**
- * Evaluates honest output rules given samples and side shade percentages.
- * 
- * @param samples Array of sun elevation and relative angle across the trip
- * @param leftShade Percentage of shade on left side [0, 100]
- * @param rightShade Percentage of shade on right side [0, 100]
- */
-export function evaluateHonestRules(
-  samples: SegmentSunSample[],
-  leftShade: number,
-  rightShade: number
-): HonestRuleResult {
-  if (samples.length === 0) {
-    return {
-      type: 'NIGHT',
-      textAr: 'مفيش شمس.. اركب في أي حتة براحتك 🌙',
-      descriptionEn: 'No trip samples provided'
-    };
+export function classifyVerdict({
+  leftSunMinutes,
+  rightSunMinutes,
+  tripMinutes,
+  daylightMinutes
+}: VerdictInputs): VerdictDecision {
+  if (daylightMinutes === 0) return { status: 'NIGHT', recommendedSide: 'either' };
+
+  const worst = Math.max(leftSunMinutes, rightSunMinutes);
+  const diff = Math.abs(leftSunMinutes - rightSunMinutes);
+  const better: Side = leftSunMinutes <= rightSunMinutes ? 'left' : 'right';
+
+  // Nobody gets more than a few minutes of sun: the roof and the angle protect everyone.
+  if (worst < Math.max(3, 0.08 * tripMinutes)) {
+    return { status: 'DOES_NOT_MATTER', recommendedSide: 'either' };
   }
-
-  // 1. All night check: Sun is below the horizon for all samples
-  const isAllNight = samples.every((s) => s.elevation <= 0);
-  if (isAllNight) {
-    return {
-      type: 'NIGHT',
-      textAr: 'مفيش شمس.. اركب في أي حتة براحتك 🌙',
-      descriptionEn: 'Sun is below horizon for the entire trip'
-    };
+  // Both sides suffer about the same (often the sun switches sides mid-trip).
+  if (diff < Math.max(4, 0.2 * worst)) {
+    return { status: 'TIE', recommendedSide: 'either' };
   }
-
-  // 2. High overhead sun check: Elevation > 68 degrees for >= 70% of duration
-  const highSunCount = samples.filter((s) => s.elevation > 68).length;
-  if (highSunCount / samples.length >= 0.7) {
-    return {
-      type: 'OVERHEAD_SUN',
-      textAr: 'الشمس فوق راسك بالظبط.. السقف حاميك ومش فارق الجنب ☀️',
-      descriptionEn: 'Sun is directly overhead; vehicle roof shields both sides'
-    };
+  if (diff >= Math.max(10, 0.45 * worst)) {
+    return { status: 'CLEAR', recommendedSide: better };
   }
-
-  // 3. Tie check: Difference between sides is below 10%
-  const diff = Math.abs(leftShade - rightShade);
-  if (diff < 10) {
-    return {
-      type: 'TIE',
-      textAr: 'الجنبين زي بعض تقريباً.. اركب اللي يعجبك ⚖️',
-      descriptionEn: 'Both sides have nearly identical shade coverage'
-    };
-  }
-
-  // 4. Deterministic recommendation
-  return {
-    type: 'DETERMINISTIC',
-    winner: leftShade >= rightShade ? 'left' : 'right',
-    diff
-  };
+  return { status: 'LEANING', recommendedSide: better };
 }

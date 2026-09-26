@@ -1,83 +1,76 @@
 import type { VehicleProfile } from '../types/vehicle.ts';
-import microbusData from '../../../public/data/vehicles/microbus-14.json';
-import busData from '../../../public/data/vehicles/bus-49.json';
+import { VEHICLES } from '../../data/vehicles.ts';
+
+const isNum = (v: unknown): v is number => typeof v === 'number' && Number.isFinite(v);
 
 /**
- * Validates that an arbitrary object satisfies the strict VehicleProfile schema.
+ * Runtime check for vehicle profiles, so a new vehicle (private car, train car)
+ * can be added as data without touching the engine.
  */
-export function validateVehicleProfile(profile: any): profile is VehicleProfile {
+export function validateVehicleProfile(profile: unknown): profile is VehicleProfile {
   if (!profile || typeof profile !== 'object') return false;
-  if (typeof profile.id !== 'string' || !profile.id) return false;
-  if (typeof profile.nameAr !== 'string' || typeof profile.nameEn !== 'string') return false;
-  if (!['microbus', 'bus', 'custom'].includes(profile.type)) return false;
-  if (typeof profile.totalSeats !== 'number' || profile.totalSeats <= 0) return false;
-  if (typeof profile.speedFactor !== 'number' || typeof profile.stopOverheadMin !== 'number') return false;
-  if (typeof profile.hasCurtains !== 'boolean') return false;
+  const p = profile as Partial<VehicleProfile>;
+  if (typeof p.id !== 'string' || !p.id) return false;
+  if (typeof p.nameAr !== 'string' || typeof p.nameEn !== 'string') return false;
+  if (!p.type || !['microbus', 'bus', 'custom'].includes(p.type)) return false;
+  if (!isNum(p.speedFactor) || !isNum(p.stopOverheadMin) || typeof p.hasCurtains !== 'boolean') return false;
 
-  // Dimensions
+  const d = p.dimensions;
   if (
-    !profile.dimensions ||
-    typeof profile.dimensions.lengthM !== 'number' ||
-    typeof profile.dimensions.widthM !== 'number' ||
-    typeof profile.dimensions.heightM !== 'number'
+    !d ||
+    ![d.lengthM, d.widthM, d.heightM, d.floorZ, d.roofInnerZ, d.frontWallY, d.rearWallY].every(isNum) ||
+    d.roofInnerZ <= d.floorZ ||
+    d.rearWallY <= d.frontWallY
   ) {
     return false;
   }
+  if (!p.driver || ![p.driver.x, p.driver.y, p.driver.z].every(isNum)) return false;
 
-  // Windows
-  if (!Array.isArray(profile.windows) || profile.windows.length === 0) return false;
-  for (const win of profile.windows) {
-    if (!['left', 'right', 'front', 'rear'].includes(win.side)) return false;
-    if (typeof win.yStart !== 'number' || typeof win.yEnd !== 'number') return false;
-    if (typeof win.zBottom !== 'number' || typeof win.zTop !== 'number') return false;
-  }
-
-  // Seats
-  if (!Array.isArray(profile.seats) || profile.seats.length !== profile.totalSeats) return false;
-  for (const seat of profile.seats) {
-    if (typeof seat.id !== 'number' || typeof seat.row !== 'number' || typeof seat.col !== 'number') return false;
-    if (!['left', 'right', 'middle'].includes(seat.side)) return false;
-    if (typeof seat.isWindow !== 'boolean') return false;
-    if (
-      !seat.position ||
-      typeof seat.position.x !== 'number' ||
-      typeof seat.position.y !== 'number' ||
-      typeof seat.position.z !== 'number'
-    ) {
+  if (!Array.isArray(p.windows) || p.windows.length === 0) return false;
+  for (const w of p.windows) {
+    if (!isNum(w.zBottom) || !isNum(w.zTop) || w.zTop <= w.zBottom) return false;
+    if (w.side === 'left' || w.side === 'right') {
+      if (!('yStart' in w) || !isNum(w.yStart) || !isNum(w.yEnd) || w.yEnd <= w.yStart) return false;
+    } else if (w.side === 'front' || w.side === 'rear') {
+      if (!('xStart' in w) || !isNum(w.xStart) || !isNum(w.xEnd) || w.xEnd <= w.xStart) return false;
+    } else {
       return false;
     }
   }
 
+  if (!Array.isArray(p.seats) || p.seats.length === 0 || p.seats.length !== p.totalSeats) return false;
+  const ids = new Set<number>();
+  for (const s of p.seats) {
+    if (!isNum(s.id) || ids.has(s.id)) return false;
+    ids.add(s.id);
+    if (!['left', 'right', 'middle'].includes(s.side) || typeof s.isWindow !== 'boolean') return false;
+    if (!s.position || ![s.position.x, s.position.y, s.position.z].every(isNum)) return false;
+    if (Math.abs(s.position.x) >= d.widthM / 2) return false;
+  }
   return true;
 }
 
 export class VehicleRepository {
   private profiles = new Map<string, VehicleProfile>();
 
-  constructor() {
-    this.registerProfile(microbusData as VehicleProfile);
-    this.registerProfile(busData as VehicleProfile);
+  constructor(profiles: VehicleProfile[] = VEHICLES) {
+    profiles.forEach((p) => this.registerProfile(p));
   }
 
-  public registerProfile(profile: VehicleProfile): void {
+  registerProfile(profile: VehicleProfile): void {
     if (!validateVehicleProfile(profile)) {
-      throw new Error(`Invalid vehicle profile: ${(profile as any)?.id || 'unknown'}`);
+      throw new Error(`Invalid vehicle profile: ${(profile as { id?: string })?.id ?? 'unknown'}`);
     }
     this.profiles.set(profile.id, profile);
   }
 
-  public getProfile(id: string): VehicleProfile {
-    const profile = this.profiles.get(id);
-    if (!profile) {
-      // Default fallback to microbus
-      const fallback = this.profiles.get('microbus-14');
-      if (fallback) return fallback;
-      throw new Error(`Vehicle profile not found: ${id}`);
-    }
+  getProfile(id: string): VehicleProfile {
+    const profile = this.profiles.get(id) ?? this.profiles.get('microbus-14');
+    if (!profile) throw new Error(`Vehicle profile not found: ${id}`);
     return profile;
   }
 
-  public getAllProfiles(): VehicleProfile[] {
+  getAllProfiles(): VehicleProfile[] {
     return Array.from(this.profiles.values());
   }
 }

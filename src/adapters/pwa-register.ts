@@ -21,51 +21,46 @@ export function evictOldCacheEntries(keys: string[], maxEntries: number): string
 }
 
 /**
- * Registers the PWA Service Worker and notifies the UI when a new version is waiting,
- * without forcing an intrusive reload during an active trip check (Story 5.1 AC-3).
+ * Registers the service worker and tells the UI when a new version is waiting.
+ * The page reloads only after the rider taps "update": never on the first install,
+ * never in the middle of typing a trip.
  */
-export function registerServiceWorker(
-  onUpdateAvailable?: (activateUpdate: () => void) => void
-): void {
+export function registerServiceWorker(onUpdateAvailable?: (activateUpdate: () => void) => void): void {
   if (typeof window === 'undefined' || typeof navigator === 'undefined') return;
   if (!('serviceWorker' in navigator)) return;
 
-  window.addEventListener('load', () => {
+  let userAcceptedUpdate = false;
+  const offer = (worker: ServiceWorker | null) => {
+    if (!worker || !onUpdateAvailable) return;
+    onUpdateAvailable(() => {
+      userAcceptedUpdate = true;
+      worker.postMessage({ type: 'SKIP_WAITING' });
+    });
+  };
+
+  const register = () => {
     navigator.serviceWorker
       .register('/sw.js')
       .then((registration) => {
-        if (registration.waiting && onUpdateAvailable) {
-          onUpdateAvailable(() => {
-            registration.waiting?.postMessage({ type: 'SKIP_WAITING' });
-          });
-        }
-
+        if (registration.waiting && navigator.serviceWorker.controller) offer(registration.waiting);
         registration.addEventListener('updatefound', () => {
-          const installingWorker = registration.installing;
-          if (!installingWorker) return;
-
-          installingWorker.addEventListener('statechange', () => {
-            if (
-              installingWorker.state === 'installed' &&
-              navigator.serviceWorker.controller &&
-              onUpdateAvailable
-            ) {
-              onUpdateAvailable(() => {
-                installingWorker.postMessage({ type: 'SKIP_WAITING' });
-              });
-            }
+          const installing = registration.installing;
+          installing?.addEventListener('statechange', () => {
+            // A controller already exists, so this is an update rather than the first install.
+            if (installing.state === 'installed' && navigator.serviceWorker.controller) offer(installing);
           });
         });
       })
       .catch(() => {
-        // Ignore service worker registration errors in dev/unsupported environments
+        // Unsupported or blocked: the app works without offline support.
       });
+  };
 
-    let refreshing = false;
-    navigator.serviceWorker.addEventListener('controllerchange', () => {
-      if (refreshing) return;
-      refreshing = true;
-      window.location.reload();
-    });
+  navigator.serviceWorker.addEventListener('controllerchange', () => {
+    if (userAcceptedUpdate) window.location.reload();
   });
+
+  // The load event may already have fired by the time React mounts.
+  if (document.readyState === 'complete') register();
+  else window.addEventListener('load', register, { once: true });
 }
