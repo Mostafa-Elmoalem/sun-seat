@@ -41,3 +41,6 @@ Thumbs.db
 .impeccable/decision/
 scripts/.cache/
 .impeccable/questions/
+
+# Heavy source models (the optimized copy lives in public/models)
+assets-src/

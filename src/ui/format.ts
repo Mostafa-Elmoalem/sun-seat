@@ -71,7 +71,3 @@ export function formatDay(date: Date, lang: AppLanguage, now = new Date()): stri
   if (a === tomorrow) return lang === 'ar' ? 'بكرة' : 'Tomorrow';
   return dayFmt[lang].format(date);
 }
-
-export function formatDayLong(date: Date, lang: AppLanguage): string {
-  return dayFmt[lang].format(date);
-}

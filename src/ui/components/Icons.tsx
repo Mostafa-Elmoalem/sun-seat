@@ -20,13 +20,6 @@ export const IconPin = (p: IconProps) => (
   </Svg>
 );
 
-export const IconFlag = (p: IconProps) => (
-  <Svg {...p}>
-    <path d="M6 21V4" />
-    <path d="M6 4h11l-2.5 4L17 12H6" />
-  </Svg>
-);
-
 export const IconLocate = (p: IconProps) => (
   <Svg {...p}>
     <circle cx="12" cy="12" r="6.5" />
@@ -86,29 +79,10 @@ export const IconEdit = (p: IconProps) => (
   </Svg>
 );
 
-export const IconSun = (p: IconProps) => (
-  <Svg {...p}>
-    <circle cx="12" cy="12" r="4" />
-    <path d="M12 2.5v2.2M12 19.3v2.2M4.6 4.6l1.6 1.6M17.8 17.8l1.6 1.6M2.5 12h2.2M19.3 12h2.2M4.6 19.4l1.6-1.6M17.8 6.2l1.6-1.6" />
-  </Svg>
-);
-
-export const IconMoon = (p: IconProps) => (
-  <Svg {...p}>
-    <path d="M19.5 14.5A8 8 0 0 1 9.5 4.5a8 8 0 1 0 10 10Z" />
-  </Svg>
-);
-
 export const IconInfo = (p: IconProps) => (
   <Svg {...p}>
     <circle cx="12" cy="12" r="9" />
     <path d="M12 11v5.5M12 7.6v.2" />
-  </Svg>
-);
-
-export const IconCheck = (p: IconProps) => (
-  <Svg {...p}>
-    <path d="m5 12.5 4.5 4.5L19 7.5" />
   </Svg>
 );
 
@@ -134,13 +108,6 @@ export const IconPlay = (p: IconProps) => (
 export const IconPause = (p: IconProps) => (
   <Svg {...p}>
     <path d="M8.5 5.5v13M15.5 5.5v13" />
-  </Svg>
-);
-
-export const IconClock = (p: IconProps) => (
-  <Svg {...p}>
-    <circle cx="12" cy="12" r="8.5" />
-    <path d="M12 7.5V12l3 2" />
   </Svg>
 );
 

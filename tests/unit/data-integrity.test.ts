@@ -104,7 +104,7 @@ describe('vehicle profiles', () => {
 describe('owner rules', () => {
   const walk = (dir: string): string[] =>
     fs.readdirSync(dir, { withFileTypes: true }).flatMap((d) => (d.isDirectory() ? walk(path.join(dir, d.name)) : [path.join(dir, d.name)]));
-  const files = ['index.html', 'README.md', 'PRODUCT.md', ...walk('src')].filter((f) => /\.(tsx?|css|html|md)$/.test(f) && fs.existsSync(f));
+  const files = ['index.html', 'README.md', 'PRODUCT.md', 'DESIGN.md', '01-context-capsule.md', ...walk('src'), ...walk('scripts')].filter((f) => /\.(tsx?|css|html|md)$/.test(f) && fs.existsSync(f));
 
   it('no em dash or en dash anywhere in copy, code or docs', () => {
     const offenders = files.filter((f) => /[–—]/.test(fs.readFileSync(f, 'utf8')));

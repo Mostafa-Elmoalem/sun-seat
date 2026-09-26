@@ -1,5 +1,7 @@
 import * as THREE from 'three';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
+import { RoundedBoxGeometry } from 'three/examples/jsm/geometries/RoundedBoxGeometry.js';
+import { SEAT_SHAPE } from '../../core/exposure/seat-rays.ts';
 import type { SideWindow, EndWindow, VehicleProfile, VehicleSeat } from '../../core/types/vehicle.ts';
 
 /**
@@ -499,11 +501,33 @@ export class VehicleScene {
     const v = this.vehicle;
     const seatColor = v.type === 'bus' ? COLORS.seatBus : COLORS.seat;
     const seatMat = this.mat(seatColor, { roughness: 0.95 });
+    const headMat = this.mat(0xaebbd6, { roughness: 0.9 });
+    const railMat = this.mat(COLORS.hub, { roughness: 0.25, metalness: 0.8 });
     const count = v.seats.length + 1; // + driver
-    const cushionGeo = this.track(new THREE.BoxGeometry(0.44, 0.1, 0.44));
-    const backGeo = this.track(new THREE.BoxGeometry(0.44, 0.62, 0.08));
+    // Commuter seats: rounded cushion, high back with a headrest and a grab rail for the row behind;
+    // the folding jump seat has a short back and no headrest. Same dimensions as the engine's SEAT_SHAPE.
+    const S = SEAT_SHAPE;
+    const cushionGeo = this.track(new RoundedBoxGeometry(S.cushion.width, S.cushion.height, S.cushion.depth, 3, 0.035));
+    const backGeo = this.track(new RoundedBoxGeometry(S.back.width, S.back.height, S.back.y1 - S.back.y0, 3, 0.035));
+    const jumpBackGeo = this.track(new RoundedBoxGeometry(S.jumpBack.width, S.jumpBack.height, 0.06, 2, 0.025));
+    const headGeoSeat = this.track(new RoundedBoxGeometry(S.headrest.width, S.headrest.z1 - S.headrest.z0, S.headrest.y1 - S.headrest.y0, 3, 0.04));
+    const railGeo = this.track(new THREE.CylinderGeometry(0.013, 0.013, 0.34, 8));
+    const places0: { x: number; y: number; z: number; jump: boolean; rail: boolean }[] = [
+      { ...v.driver, jump: false, rail: false },
+      ...v.seats.map((s) => ({ ...s.position, jump: s.isJump === true, rail: s.row < Math.max(...v.seats.map((x) => x.row)) && !s.isJump }))
+    ];
     const cushions = new THREE.InstancedMesh(cushionGeo, seatMat, count);
-    const backs = new THREE.InstancedMesh(backGeo, seatMat, count);
+    const backs = new THREE.InstancedMesh(backGeo, seatMat, places0.filter((p) => !p.jump).length);
+    const jumpBacks = new THREE.InstancedMesh(jumpBackGeo, seatMat, Math.max(1, places0.filter((p) => p.jump).length));
+    const headrests = new THREE.InstancedMesh(headGeoSeat, headMat, places0.filter((p) => !p.jump).length);
+    const rails = new THREE.InstancedMesh(railGeo, railMat, Math.max(1, places0.filter((p) => p.rail).length));
+    jumpBacks.count = places0.filter((p) => p.jump).length;
+    rails.count = places0.filter((p) => p.rail).length;
+    [jumpBacks, headrests, rails].forEach((m) => {
+      m.castShadow = true;
+      m.receiveShadow = true;
+      this.scene.add(m);
+    });
     const torsoGeo = this.track(new THREE.CapsuleGeometry(0.16, 0.3, 4, 10));
     const headGeo = this.track(new THREE.SphereGeometry(0.105, 16, 12));
     const thighGeo = this.track(new THREE.CapsuleGeometry(0.075, 0.3, 4, 8));
@@ -526,12 +550,28 @@ export class VehicleScene {
       { ...v.driver, id: 0 },
       ...v.seats.map((s) => ({ ...s.position, id: s.id }))
     ];
+    let bi = 0;
+    let ji = 0;
+    let ri = 0;
+    const backY = (S.back.y0 + S.back.y1) / 2;
     places.forEach((p, i) => {
-      m4.compose(this.toThree(p.x, p.y, p.z - 0.05), q.identity(), one);
+      const shape = places0[i]!;
+      m4.compose(this.toThree(p.x, p.y, p.z - S.cushion.height / 2), q.identity(), one);
       cushions.setMatrixAt(i, m4);
-      e.set(-0.12, 0, 0);
-      m4.compose(this.toThree(p.x, p.y + 0.22, p.z + 0.3), q.setFromEuler(e), one);
-      backs.setMatrixAt(i, m4);
+      if (shape.jump) {
+        m4.compose(this.toThree(p.x, p.y + backY, p.z + S.jumpBack.height / 2), q.identity(), one);
+        jumpBacks.setMatrixAt(ji++, m4);
+      } else {
+        m4.compose(this.toThree(p.x, p.y + backY, p.z + S.back.height / 2), q.identity(), one);
+        backs.setMatrixAt(bi, m4);
+        m4.compose(this.toThree(p.x, p.y + (S.headrest.y0 + S.headrest.y1) / 2, p.z + (S.headrest.z0 + S.headrest.z1) / 2), q.identity(), one);
+        headrests.setMatrixAt(bi++, m4);
+      }
+      if (shape.rail) {
+        e.set(0, 0, Math.PI / 2);
+        m4.compose(this.toThree(p.x, p.y + S.back.y1 + 0.03, p.z + S.back.height - 0.04), q.setFromEuler(e), one);
+        rails.setMatrixAt(ri++, m4);
+      }
       e.set(-0.1, 0, 0);
       m4.compose(this.toThree(p.x, p.y + 0.02, p.z + 0.42), q.setFromEuler(e), one);
       torsos.setMatrixAt(i, m4);

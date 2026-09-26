@@ -63,9 +63,29 @@ function occupantBox(x: number, y: number, z: number, owner: number): Box {
   return { x0: x - 0.21, x1: x + 0.21, y0: y - 0.32, y1: y + 0.14, z0: z, z1: z + 0.82, owner };
 }
 
-function seatbackBox(seat: VehicleSeat): Box {
+/**
+ * Seat geometry that can cast shade, matching the 3D seats exactly (see SEAT_SHAPE):
+ * a backrest behind the passenger and, except on folding jump seats, a headrest.
+ */
+export const SEAT_SHAPE = {
+  cushion: { width: 0.44, depth: 0.46, height: 0.11 },
+  back: { width: 0.44, y0: 0.15, y1: 0.26, height: 0.6 },
+  jumpBack: { width: 0.38, height: 0.44 },
+  headrest: { width: 0.26, y0: 0.16, y1: 0.25, z0: 0.62, z1: 0.8 }
+} as const;
+
+function seatShadeBoxes(seat: VehicleSeat): Box[] {
   const { x, y, z } = seat.position;
-  return { x0: x - 0.24, x1: x + 0.24, y0: y + 0.14, y1: y + 0.24, z0: z, z1: z + 0.7, owner: -1 };
+  const back = seat.isJump ? SEAT_SHAPE.jumpBack : SEAT_SHAPE.back;
+  const hw = back.width / 2;
+  const boxes: Box[] = [
+    { x0: x - hw, x1: x + hw, y0: y + SEAT_SHAPE.back.y0, y1: y + SEAT_SHAPE.back.y1, z0: z, z1: z + back.height, owner: -1 }
+  ];
+  if (!seat.isJump) {
+    const h = SEAT_SHAPE.headrest;
+    boxes.push({ x0: x - h.width / 2, x1: x + h.width / 2, y0: y + h.y0, y1: y + h.y1, z0: z + h.z0, z1: z + h.z1, owner: -1 });
+  }
+  return boxes;
 }
 
 export function buildCabinModel(vehicle: VehicleProfile): CabinModel {
@@ -80,7 +100,7 @@ export function buildCabinModel(vehicle: VehicleProfile): CabinModel {
       occupantBox(vehicle.driver.x, vehicle.driver.y, vehicle.driver.z, 0),
       ...vehicle.seats.map((s) => occupantBox(s.position.x, s.position.y, s.position.z, s.id))
     ],
-    seatbacks: vehicle.seats.map(seatbackBox),
+    seatbacks: vehicle.seats.flatMap(seatShadeBoxes),
     leftWindows: vehicle.windows.filter((w) => w.side === 'left'),
     rightWindows: vehicle.windows.filter((w) => w.side === 'right'),
     frontWindows: vehicle.windows.filter((w) => w.side === 'front'),

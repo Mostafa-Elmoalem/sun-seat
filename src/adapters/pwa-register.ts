@@ -1,25 +1,3 @@
-export const PRECACHE_ASSETS: readonly string[] = [
-  '/',
-  '/index.html',
-  '/manifest.webmanifest',
-  '/favicon.svg',
-  '/data/places.json',
-  '/data/vehicles/microbus-14.json',
-  '/data/vehicles/bus-49.json'
-];
-
-/**
- * Pure helper to determine which oldest cache keys must be evicted
- * to keep dynamic route cache within the storage budget (Story 5.1 AC-2).
- */
-export function evictOldCacheEntries(keys: string[], maxEntries: number): string[] {
-  if (keys.length <= maxEntries || maxEntries < 0) {
-    return [];
-  }
-  const deleteCount = keys.length - maxEntries;
-  return keys.slice(0, deleteCount);
-}
-
 /**
  * Registers the service worker and tells the UI when a new version is waiting.
  * The page reloads only after the rider taps "update": never on the first install,

@@ -41,23 +41,3 @@ export function stripAlPrefix(normalizedText: string): string {
     .map((word) => (word.startsWith('ال') && word.length > 3 ? word.slice(2) : word))
     .join(' ');
 }
-
-/**
- * Checks if search terms match a target text, ignoring Alef/Teh/Yeh differences and 'ال'.
- */
-export function fuzzyMatchArabic(query: string, target: string): boolean {
-  const normQuery = normalizeArabic(query);
-  const normTarget = normalizeArabic(target);
-
-  if (normTarget.includes(normQuery)) return true;
-
-  // Check without 'ال' prefix
-  const strippedQuery = stripAlPrefix(normQuery);
-  const strippedTarget = stripAlPrefix(normTarget);
-
-  if (strippedTarget.includes(strippedQuery)) return true;
-
-  // Check individual words
-  const queryWords = strippedQuery.split(' ').filter(Boolean);
-  return queryWords.every((word) => strippedTarget.includes(word));
-}

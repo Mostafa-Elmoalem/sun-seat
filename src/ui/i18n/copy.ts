@@ -287,8 +287,6 @@ export const COPY = {
   }
 } as const;
 
-export type Copy = (typeof COPY)[AppLanguage];
-
 export function sideName(side: Side, lang: AppLanguage): string {
   const c = COPY[lang];
   return side === 'left' ? c.sideDriver : c.sideDoor;
