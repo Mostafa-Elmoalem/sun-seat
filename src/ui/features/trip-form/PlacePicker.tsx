@@ -1,11 +1,11 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import type { Place } from '../../core/types/places.ts';
-import { defaultPlacesRepository } from '../../adapters/places-repository.ts';
-import { normalizeArabic } from '../../core/geometry/normalize-arabic.ts';
-import { calculateDistanceKm } from '../../core/geometry/bearing.ts';
-import { COPY, placeKindLabel, type AppLanguage } from '../i18n/copy.ts';
-import { IconBack, IconClose, IconLocate, IconSearch, PlaceKindIcon } from './Icons.tsx';
-import { locateMe } from '../geo.ts';
+import type { Place } from '../../../core/types/places.ts';
+import { defaultPlacesRepository } from '../../../adapters/places-repository.ts';
+import { normalizeArabic } from '../../../core/geometry/normalize-arabic.ts';
+import { calculateDistanceKm } from '../../../core/geometry/bearing.ts';
+import { COPY, GPS_NAMING, placeKindLabel, type AppLanguage } from '../../i18n/copy.ts';
+import { IconBack, IconClose, IconLocate, IconSearch, PlaceKindIcon } from '../../shared/Icons.tsx';
+import { locateMe } from '../../../app/trip/locate-me.ts';
 
 interface PlacePickerProps {
   field: 'from' | 'to';
@@ -93,7 +93,7 @@ export function PlacePicker({ field, lang, recentPlaces, onPick, onClose }: Plac
 
   const locate = () => {
     setGps('locating');
-    locateMe().then(onPick, () => setGps('denied'));
+    locateMe(GPS_NAMING).then(onPick, () => setGps('denied'));
   };
 
   const firstResult = local[0] ?? onlineExtra[0];

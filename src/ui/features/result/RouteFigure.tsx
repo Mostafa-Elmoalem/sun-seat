@@ -1,10 +1,10 @@
 import { useMemo, type ReactElement } from 'react';
-import type { DecodedRoute } from '../../core/types/routes.ts';
-import type { TimelineStep, TripExposureVerdict } from '../../core/types/vehicle.ts';
-import type { Place } from '../../core/types/places.ts';
-import { COPY, compassName, type AppLanguage } from '../i18n/copy.ts';
-import { formatTime } from '../format.ts';
-import { IconInfo } from './Icons.tsx';
+import type { DecodedRoute } from '../../../core/types/routes.ts';
+import type { TimelineStep, TripExposureVerdict } from '../../../core/types/vehicle.ts';
+import type { Place } from '../../../core/types/places.ts';
+import { COPY, compassName, type AppLanguage } from '../../i18n/copy.ts';
+import { formatTime } from '../../format.ts';
+import { IconInfo } from '../../shared/Icons.tsx';
 
 /**
  * The route inked on the page's own graph paper, north up, with a protractor at

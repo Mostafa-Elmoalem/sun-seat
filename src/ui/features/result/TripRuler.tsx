@@ -1,6 +1,6 @@
-import type { TripExposureVerdict, SunDirection } from '../../core/types/vehicle.ts';
-import { COPY, formatDuration, type AppLanguage } from '../i18n/copy.ts';
-import { formatTime } from '../format.ts';
+import type { TripExposureVerdict, SunDirection } from '../../../core/types/vehicle.ts';
+import { COPY, formatDuration, type AppLanguage } from '../../i18n/copy.ts';
+import { formatTime } from '../../format.ts';
 
 /**
  * The trip as a ruler: time runs along it in reading direction, the driver-side

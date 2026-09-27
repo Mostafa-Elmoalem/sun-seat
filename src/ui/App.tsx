@@ -1,9 +1,10 @@
 import { useEffect, useState } from 'react';
-import { tripStore, useTripStore, warmPlaces } from './store/trip-store.ts';
+import { tripStore, warmPlaces } from '../app/trip/trip-store.ts';
+import { useTripStore } from './hooks/use-trip-store.ts';
 import { COPY } from './i18n/copy.ts';
-import { TripForm } from './components/TripForm.tsx';
-import { ResultView } from './components/ResultView.tsx';
-import { BrandMark, IconOffline } from './components/Icons.tsx';
+import { TripForm } from './features/trip-form/TripForm.tsx';
+import { ResultView } from './features/result/ResultView.tsx';
+import { BrandMark, IconOffline } from './shared/Icons.tsx';
 import { useNetworkStatus } from './hooks/use-network-status.ts';
 import { registerServiceWorker } from '../adapters/pwa-register.ts';
 

@@ -1,4 +1,4 @@
-import type { TripExposureVerdict } from '../core/types/vehicle.ts';
+import type { TripExposureVerdict } from '../../core/types/vehicle.ts';
 
 /** The moment every figure shows when the rider has not picked one (ruler, route, 3D): the middle of the longest side-on stretch. */
 export function defaultFocusIndex(verdict: TripExposureVerdict): number {

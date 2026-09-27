@@ -1,17 +1,17 @@
 import { Component, lazy, Suspense, useMemo, useState, type ReactNode } from 'react';
-import { useTripStore } from '../store/trip-store.ts';
-import { defaultVehicleRepository } from '../../core/vehicles/vehicle-repository.ts';
-import { COPY, verdictHeadline, type AppLanguage } from '../i18n/copy.ts';
-import { formatDay, formatTime } from '../format.ts';
+import { useTripStore } from '../../hooks/use-trip-store.ts';
+import { defaultVehicleRepository } from '../../../core/vehicles/vehicle-repository.ts';
+import { COPY, verdictHeadline, type AppLanguage } from '../../i18n/copy.ts';
+import { formatDay, formatTime } from '../../format.ts';
 import { SideComparison, Verdict } from './Verdict.tsx';
-import { defaultFocusIndex } from '../focus.ts';
+import { defaultFocusIndex } from '../../../app/result/focus.ts';
 import { SeatPlan } from './SeatPlan.tsx';
 import { TripRuler } from './TripRuler.tsx';
 import { RouteFigure } from './RouteFigure.tsx';
 import { HowItWorks } from './HowItWorks.tsx';
-import { IconChevronDown, IconCube, IconEdit, IconShare, IconTripArrow } from './Icons.tsx';
+import { IconChevronDown, IconCube, IconEdit, IconShare, IconTripArrow } from '../../shared/Icons.tsx';
 
-const VehicleCanvas = lazy(() => import('../three/VehicleCanvas.tsx'));
+const VehicleCanvas = lazy(() => import('../vehicle-3d/VehicleCanvas.tsx'));
 
 class ThreeBoundary extends Component<{ fallback: ReactNode; children: ReactNode }, { failed: boolean }> {
   override state = { failed: false };

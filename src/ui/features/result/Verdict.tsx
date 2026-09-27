@@ -1,9 +1,9 @@
-import type { TripExposureVerdict, VehicleProfile } from '../../core/types/vehicle.ts';
-import type { WeatherData } from '../../adapters/weather-service.ts';
-import { COPY, formatDuration, otherSide, sideName, verdictHeadline, type AppLanguage } from '../i18n/copy.ts';
-import { formatTime } from '../format.ts';
-import { calculateSunPosition } from '../../core/astronomy/noaa-solar.ts';
-import { IconInfo } from './Icons.tsx';
+import type { TripExposureVerdict, VehicleProfile } from '../../../core/types/vehicle.ts';
+import type { WeatherData } from '../../../adapters/weather-service.ts';
+import { COPY, formatDuration, otherSide, sideName, verdictHeadline, type AppLanguage } from '../../i18n/copy.ts';
+import { formatTime } from '../../format.ts';
+import { calculateSunPosition } from '../../../core/astronomy/noaa-solar.ts';
+import { IconInfo } from '../../shared/Icons.tsx';
 
 /** A hand-drawn ellipse, the teacher's red ring around the answer. Crisp geometry, slightly open at the end. */
 function Ring() {

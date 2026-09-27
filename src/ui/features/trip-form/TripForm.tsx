@@ -1,11 +1,13 @@
 import { useMemo, useState } from 'react';
-import type { Place } from '../../core/types/places.ts';
-import { useTripStore, roundToFiveMinutes } from '../store/trip-store.ts';
-import { COPY, type AppLanguage } from '../i18n/copy.ts';
-import { cairoParts, fromCairo, formatDay, formatTime } from '../format.ts';
+import type { Place } from '../../../core/types/places.ts';
+import { useTripStore } from '../../hooks/use-trip-store.ts';
+import { fromNow, tomorrowSameTime } from '../../../app/trip/departure.ts';
+import { recentPlaces as distinctRecentPlaces } from '../../../app/trip/recents.ts';
+import { COPY, GPS_NAMING, type AppLanguage } from '../../i18n/copy.ts';
+import { cairoParts, fromCairo, formatDay, formatTime } from '../../format.ts';
 import { PlacePicker } from './PlacePicker.tsx';
-import { BusSilhouette, IconInfo, IconLocate, IconSwap, IconTripArrow, MicrobusSilhouette } from './Icons.tsx';
-import { locateMe } from '../geo.ts';
+import { BusSilhouette, IconInfo, IconLocate, IconSwap, IconTripArrow, MicrobusSilhouette } from '../../shared/Icons.tsx';
+import { locateMe } from '../../../app/trip/locate-me.ts';
 
 function PlaceLine({
   tag,
@@ -45,7 +47,7 @@ export function TripForm() {
   const [gps, setGps] = useState<'idle' | 'locating' | 'denied'>('idle');
   const useMyLocation = () => {
     setGps('locating');
-    locateMe().then(
+    locateMe(GPS_NAMING).then(
       (p) => {
         s.setOrigin(p);
         setGps('idle');
@@ -55,26 +57,9 @@ export function TripForm() {
   };
 
   const parts = cairoParts(s.departure);
-  const recentPlaces = useMemo(() => {
-    const seen = new Set<string>();
-    const out: Place[] = [];
-    for (const r of s.recents) {
-      for (const p of [r.origin, r.destination]) {
-        const key = `${p.location.lat.toFixed(3)},${p.location.lng.toFixed(3)}`;
-        if (!seen.has(key) && p.kind !== 'gps') {
-          seen.add(key);
-          out.push(p);
-        }
-      }
-    }
-    return out.slice(0, 4);
-  }, [s.recents]);
-
-  const shiftFromNow = (minutes: number) => s.setDeparture(roundToFiveMinutes(new Date(Date.now() + minutes * 60_000)));
-  const tomorrowSameTime = () => {
-    const base = s.departure.getTime() < Date.now() + 3600_000 ? new Date() : s.departure;
-    s.setDeparture(roundToFiveMinutes(new Date(base.getTime() + 86_400_000)));
-  };
+  const recentPlaces = useMemo(() => distinctRecentPlaces(s.recents), [s.recents]);
+  const shiftFromNow = (minutes: number) => s.setDeparture(fromNow(minutes));
+  const tomorrow = () => s.setDeparture(tomorrowSameTime(s.departure));
 
   const errorText = s.error === 'MISSING' ? c.errMissing : s.error === 'SAME' ? c.errSame : null;
 
@@ -182,7 +167,7 @@ export function TripForm() {
           <button type="button" className="pill" aria-pressed={false} onClick={() => shiftFromNow(30)} data-testid="time-plus-30">
             {c.in30}
           </button>
-          <button type="button" className="pill" aria-pressed={false} onClick={tomorrowSameTime} data-testid="time-tomorrow">
+          <button type="button" className="pill" aria-pressed={false} onClick={tomorrow} data-testid="time-tomorrow">
             {c.tomorrow}
           </button>
         </div>

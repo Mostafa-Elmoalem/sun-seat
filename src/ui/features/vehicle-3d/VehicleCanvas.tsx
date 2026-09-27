@@ -1,13 +1,13 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import type { TimelineStep, TripExposureVerdict, VehicleProfile } from '../../core/types/vehicle.ts';
-import { calculateSunVector } from '../../core/exposure/exposure-calculator.ts';
-import { calculateSunPosition } from '../../core/astronomy/noaa-solar.ts';
-import { COPY, type AppLanguage } from '../i18n/copy.ts';
-import { formatTime, cairoParts, fromCairo } from '../format.ts';
-import { IconPause, IconPlay } from '../components/Icons.tsx';
+import type { TimelineStep, TripExposureVerdict, VehicleProfile } from '../../../core/types/vehicle.ts';
+import { calculateSunVector } from '../../../core/exposure/exposure-calculator.ts';
+import { calculateSunPosition } from '../../../core/astronomy/noaa-solar.ts';
+import { COPY, type AppLanguage } from '../../i18n/copy.ts';
+import { formatTime, cairoParts, fromCairo } from '../../format.ts';
+import { IconPause, IconPlay } from '../../shared/Icons.tsx';
 import { VehicleScene, type SunState, type ViewMode } from './VehicleScene.ts';
-import { defaultFocusIndex } from '../focus.ts';
-import { EGYPT_MICROBUS_14, loadShell } from '../../../packages/egypt-microbus/src/index.ts';
+import { defaultFocusIndex } from '../../../app/result/focus.ts';
+import { EGYPT_MICROBUS_14, loadShell } from '../../../../packages/egypt-microbus/src/index.ts';
 
 /** The microbus body, cut at build time (scripts/build-microbus-shell.mts). */
 const SHELL_URL = '/models/egypt-microbus-shell.bin';

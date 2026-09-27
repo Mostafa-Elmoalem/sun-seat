@@ -1,8 +1,8 @@
 import { useMemo } from 'react';
-import type { TripExposureVerdict, VehicleProfile, VehicleSeat, TimelineStep } from '../../core/types/vehicle.ts';
-import { calculateSunVector, seatSunlightAtStep } from '../../core/exposure/exposure-calculator.ts';
-import { COPY, formatDuration, sideName, type AppLanguage } from '../i18n/copy.ts';
-import { formatTime } from '../format.ts';
+import type { TripExposureVerdict, VehicleProfile, VehicleSeat, TimelineStep } from '../../../core/types/vehicle.ts';
+import { calculateSunVector, seatSunlightAtStep } from '../../../core/exposure/exposure-calculator.ts';
+import { COPY, formatDuration, sideName, type AppLanguage } from '../../i18n/copy.ts';
+import { formatTime } from '../../format.ts';
 
 /**
  * Plan view of the vehicle, front at the top, driver side on the left, door on the right.

@@ -2,9 +2,9 @@ import * as THREE from 'three';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 import { RoundedBoxGeometry } from 'three/examples/jsm/geometries/RoundedBoxGeometry.js';
 import { RoomEnvironment } from 'three/examples/jsm/environments/RoomEnvironment.js';
-import { SEAT_SHAPE } from '../../core/exposure/seat-rays.ts';
-import { buildMicrobus, EGYPT_MICROBUS_14, type MicrobusModel, type ShellParts } from '../../../packages/egypt-microbus/src/index.ts';
-import type { SideWindow, EndWindow, VehicleProfile, VehicleSeat } from '../../core/types/vehicle.ts';
+import { SEAT_SHAPE } from '../../../core/exposure/seat-rays.ts';
+import { buildMicrobus, EGYPT_MICROBUS_14, type MicrobusModel, type ShellParts } from '../../../../packages/egypt-microbus/src/index.ts';
+import type { SideWindow, EndWindow, VehicleProfile, VehicleSeat } from '../../../core/types/vehicle.ts';
 
 /**
  * A real-time 3D model of the vehicle, built from the SAME profile the exposure

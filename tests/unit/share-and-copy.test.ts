@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { serializeTripToQuery, parseTripFromQuery } from '../../src/ui/store/trip-store.ts';
+import { serializeTripToQuery, parseTripFromQuery } from '../../src/app/trip/share-link.ts';
 import { getHubById } from '../../src/data/hubs.ts';
 import { COPY, formatDuration, verdictHeadline } from '../../src/ui/i18n/copy.ts';
 import { classifyVerdict } from '../../src/core/exposure/honest-rules.ts';

@@ -1,6 +1,7 @@
 import type { Side, SunDirection, VerdictStatus, ConfidenceLevel } from '../../core/types/vehicle.ts';
 import type { RouteSource } from '../../core/types/routes.ts';
 import type { PlaceKind } from '../../core/types/places.ts';
+import type { GpsNaming } from '../../app/trip/locate-me.ts';
 
 export type AppLanguage = 'ar' | 'en';
 
@@ -286,6 +287,14 @@ export const COPY = {
     calcYours: 'Check your own trip'
   }
 } as const;
+
+/** How a GPS fix is named in both languages. */
+export const GPS_NAMING: GpsNaming = {
+  nameAr: COPY.ar.myLocationName,
+  nameEn: COPY.en.myLocationName,
+  nearAr: COPY.ar.gpsNear,
+  nearEn: COPY.en.gpsNear
+};
 
 export function sideName(side: Side, lang: AppLanguage): string {
   const c = COPY[lang];

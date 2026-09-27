@@ -1,6 +1,6 @@
-import type { DecodedRoute } from '../../core/types/routes.ts';
-import type { TripExposureVerdict } from '../../core/types/vehicle.ts';
-import { COPY, compassName, formatDuration, sideName, type AppLanguage } from '../i18n/copy.ts';
+import type { DecodedRoute } from '../../../core/types/routes.ts';
+import type { TripExposureVerdict } from '../../../core/types/vehicle.ts';
+import { COPY, compassName, formatDuration, sideName, type AppLanguage } from '../../i18n/copy.ts';
 
 export function HowItWorks({ verdict, route, lang }: { verdict: TripExposureVerdict; route: DecodedRoute; lang: AppLanguage }) {
   const c = COPY[lang];
