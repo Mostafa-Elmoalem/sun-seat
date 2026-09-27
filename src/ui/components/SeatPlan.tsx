@@ -1,72 +1,114 @@
-import { useMemo } from 'react';
-import type { TripExposureVerdict, VehicleProfile, VehicleSeat, TimelineStep } from '../../core/types/vehicle.ts';
-import { calculateSunVector, seatSunlightAtStep } from '../../core/exposure/exposure-calculator.ts';
-import { COPY, formatDuration, sideName, type AppLanguage } from '../i18n/copy.ts';
-import { formatTime } from '../format.ts';
+import { useMemo, type ReactElement } from 'react';
+import type { EndWindow, SeatExposure, SideWindow, TimelineStep, TripExposureVerdict, VehicleProfile, VehicleSeat } from '../../core/types/vehicle.ts';
+import { calculateSunVector, MILD_SUN, seatSunlightAtStep, STRONG_SUN } from '../../core/exposure/exposure-calculator.ts';
+import { COPY, formatDuration, type AppLanguage } from '../i18n/copy.ts';
 
 /**
- * Plan view of the vehicle, front at the top, driver side on the left, door on the right.
- * Never mirrored: this SVG is always laid out left to right.
- *
- * Sun is drawn the way it is taught in the notebook: highlighter fill for any sun,
- * plus graphite hatching whose density grows with the amount, so the map still reads
- * on a washed-out screen in direct sunlight.
+ * The vehicle from above as a lattice: front at the top, the driver side on the left,
+ * the door on the right, never mirrored. Every seat is a lattice cell; the sun falls
+ * into it as lit lattice dots whose number is the amount of sun (hot for proper sun,
+ * pale for light sun, ghost for shade). The best seats glow white in the whole-trip view.
  */
 
-interface Layout {
-  width: number;
-  height: number;
-  body: { x: number; y: number; w: number; h: number; r: number };
-  seat: { w: number; h: number };
-  place: (s: VehicleSeat) => { x: number; y: number };
-  driver: { x: number; y: number };
-  door: { y0: number; y1: number };
-  windshieldY: number;
+const COLOR = {
+  floor: '#13343a',
+  frame: '#2a5a60',
+  glass: '#86bcc0',
+  cell: '#183d43',
+  cellEdge: '#2a5a60',
+  ghost: '#21494f',
+  ghostOnWhite: '#dde3e0',
+  best: '#fbfbf8',
+  bestInk: '#123e44',
+  number: '#eef3f1',
+  dim: '#a9c0bd',
+  sun: '#ffb52e',
+  sunLight: '#ffe0a0',
+  sunLightOnWhite: '#f5c566',
+  ring: '#eef3f1'
+};
+
+interface Dots {
+  cols: number;
+  rows: number;
+  r: number;
+  dx: number;
+  dy: number;
+  top: number;
 }
 
-function microbusLayout(): Layout {
+interface Layout {
+  view: { x: number; y: number; w: number; h: number };
+  body: { x: number; y: number; w: number; h: number; r: number };
+  cell: { w: number; h: number; r: number };
+  dots: Dots;
+  number: { size: number; y: number };
+  minutes: boolean;
+  colX: (s: VehicleSeat) => number;
+  yOf: (vehicleY: number) => number;
+  xOf: (vehicleX: number) => number;
+}
+
+function microbusLayout(v: VehicleProfile): Layout {
+  const bodyX = 24;
+  const bodyW = 252;
   const cols = [70, 150, 230];
-  const rowY = [96, 176, 248, 320, 400];
+  const yOf = (y: number) => 104 + (y - 0.95) * 92;
   return {
-    width: 300,
-    height: 470,
-    body: { x: 26, y: 30, w: 248, h: 420, r: 34 },
-    seat: { w: 64, h: 54 },
-    place: (s) => ({ x: cols[s.col] ?? 150, y: rowY[s.row] ?? 96 }),
-    driver: { x: cols[0]!, y: rowY[0]! },
-    door: { y0: 138, y1: 214 },
-    windshieldY: 52
+    view: { x: -46, y: -8, w: 392, h: 548 },
+    body: { x: bodyX, y: 34, w: bodyW, h: Math.max(yOf(v.dimensions.rearWallY) + 30, 490) - 34, r: 34 },
+    cell: { w: 64, h: 62, r: 12 },
+    dots: { cols: 4, rows: 2, r: 5.2, dx: 13, dy: 12, top: 10 },
+    number: { size: 19, y: -8 },
+    minutes: true,
+    colX: (s) => cols[s.col] ?? 150,
+    yOf,
+    xOf: (x: number) => bodyX + bodyW / 2 + (x / v.dimensions.widthM) * bodyW
   };
 }
 
-function busLayout(): Layout {
+function busLayout(v: VehicleProfile): Layout {
+  const bodyX = 22;
+  const bodyW = 256;
   const colX = [56, 104, 196, 244];
   const backX = [56, 103, 150, 197, 244];
-  const rowY = (row: number) => 132 + (row - 1) * 48;
+  const yOf = (y: number) => 46 + (y - 0.12) * 55.6;
   return {
-    width: 300,
-    height: 740,
-    body: { x: 22, y: 30, w: 256, h: 692, r: 26 },
-    seat: { w: 42, h: 40 },
-    place: (s) => (s.row === 12 ? { x: backX[s.col] ?? 150, y: rowY(12) + 4 } : { x: colX[s.col] ?? 150, y: rowY(s.row) }),
-    driver: { x: 70, y: 76 },
-    door: { y0: 50, y1: 104 },
-    windshieldY: 46
+    view: { x: -40, y: -8, w: 380, h: 760 },
+    body: { x: bodyX, y: 30, w: bodyW, h: yOf(v.dimensions.rearWallY) - 30 + 12, r: 26 },
+    cell: { w: 42, h: 40, r: 9 },
+    dots: { cols: 3, rows: 2, r: 3.6, dx: 10, dy: 9, top: 5 },
+    number: { size: 13, y: -6 },
+    minutes: false,
+    colX: (s) => (s.row === 12 ? backX[s.col] ?? 150 : colX[s.col] ?? 150),
+    yOf,
+    xOf: (x: number) => bodyX + bodyW / 2 + (x / v.dimensions.widthM) * bodyW
   };
 }
 
-function sunLevel(fraction: number): 0 | 1 | 2 | 3 {
-  if (fraction < 0.04) return 0;
-  if (fraction < 0.2) return 1;
-  if (fraction < 0.45) return 2;
-  return 3;
+function rhombus(cx: number, cy: number, r: number): string {
+  return `M${cx.toFixed(1)} ${(cy - r).toFixed(1)}L${(cx + r).toFixed(1)} ${cy.toFixed(1)}L${cx.toFixed(1)} ${(cy + r).toFixed(1)}L${(cx - r).toFixed(1)} ${cy.toFixed(1)}Z`;
 }
 
-const FILL = ['#fbfcfe', '#fff4b8', '#ffe766', '#ffd21f'];
+/** Lit dots for one seat: how many are proper sun and how many light sun. */
+export function seatDots(total: number, exposure: SeatExposure | undefined, tripMinutes: number, momentLit: number | null): { strong: number; light: number } {
+  if (momentLit !== null) {
+    if (momentLit < MILD_SUN) return { strong: 0, light: 0 };
+    const n = Math.max(1, Math.min(total, Math.round(total * Math.min(1, momentLit / 0.6))));
+    return momentLit >= STRONG_SUN ? { strong: n, light: 0 } : { strong: 0, light: n };
+  }
+  if (!exposure) return { strong: 0, light: 0 };
+  const trip = Math.max(1, tripMinutes);
+  const strong = exposure.strongMinutes > 0 ? Math.max(1, Math.round((total * exposure.strongMinutes) / trip)) : 0;
+  const light = exposure.mildMinutes > 0 ? Math.max(1, Math.round((total * exposure.mildMinutes) / trip)) : 0;
+  const s = Math.min(total, strong);
+  return { strong: s, light: Math.min(total - s, light) };
+}
 
 export interface SeatPlanProps {
   vehicle: VehicleProfile;
   verdict: TripExposureVerdict;
+  /** The inspected moment, or null for the whole trip. */
   step: TimelineStep | null;
   selectedSeatId: number | null;
   onSelect: (id: number) => void;
@@ -75,200 +117,188 @@ export interface SeatPlanProps {
 
 export function SeatPlan({ vehicle, verdict, step, selectedSeatId, onSelect, lang }: SeatPlanProps) {
   const c = COPY[lang];
-  const L = vehicle.type === 'bus' ? busLayout() : microbusLayout();
+  const L = vehicle.type === 'bus' ? busLayout(vehicle) : microbusLayout(vehicle);
   const live = useMemo(() => (step ? seatSunlightAtStep(vehicle, step) : null), [vehicle, step]);
-  const minutesById = useMemo(() => new Map(verdict.seatsExposure.map((e) => [e.seatId, e.sunMinutes])), [verdict]);
-  const best = new Set(verdict.status === 'NIGHT' ? [] : verdict.bestSeatIds);
+  const exposureById = useMemo(() => new Map(verdict.seatsExposure.map((e) => [e.seatId, e])), [verdict]);
+  const whole = step === null;
+  const best = new Set(verdict.seatAdvice && verdict.status !== 'NIGHT' ? verdict.bestSeatIds : []);
+  const { body, cell, dots } = L;
+  const cx = body.x + body.w / 2;
+  const cy = body.y + body.h / 2;
 
-  const fractionOf = (id: number) =>
-    live ? live.get(id) ?? 0 : Math.min(1, (minutesById.get(id) ?? 0) / Math.max(1, verdict.tripMinutes));
-
-  // Where to draw the sun around the vehicle: the live step, or the side that got the most sun.
+  // Where the sun stands around the vehicle: the moment's bearing, or the side (or end) that took the most.
   const sunAngle = useMemo(() => {
-    if (step) {
-      if (step.isNight) return null;
-      return calculateSunVector(step.solarAzimuthDeg, step.solarElevationDeg, step.headingDeg).relativeAngleDeg;
+    if (step) return step.isNight ? null : calculateSunVector(step.solarAzimuthDeg, step.solarElevationDeg, step.headingDeg).relativeAngleDeg;
+    if (verdict.status === 'NIGHT') return null;
+    if ((verdict.status === 'CLEAR' || verdict.status === 'LEANING') && verdict.recommendedSide !== 'either') {
+      return verdict.recommendedSide === 'right' ? 270 : 90;
     }
-    if (verdict.status === 'NIGHT' || verdict.status === 'DOES_NOT_MATTER') return null;
-    const { leftSunMinutes: l, rightSunMinutes: r } = verdict.sides;
-    if (Math.abs(l - r) < 2) return null;
-    return l > r ? 270 : 90;
+    if (verdict.endAdvice === 'avoid-back') return 180;
+    if (verdict.endAdvice === 'avoid-front') return 0;
+    return null;
   }, [step, verdict]);
 
-  const cx = L.width / 2;
-  const cy = L.body.y + L.body.h / 2;
-  const { w: sw, h: sh } = L.seat;
+  const rows = vehicle.seats.map((s) => s.row);
+  const endRow = whole && verdict.endAdvice ? (verdict.endAdvice === 'avoid-back' ? Math.max(...rows) : Math.min(...rows)) : null;
+  const endSeats = endRow === null ? [] : vehicle.seats.filter((s) => s.row === endRow);
 
-  const selected = vehicle.seats.find((s) => s.id === selectedSeatId) ?? null;
-  const selectedMinutes = selected ? minutesById.get(selected.id) ?? 0 : 0;
+  let bloomIndex = 0;
+  const seatNodes: ReactElement[] = vehicle.seats.map((seat) => {
+    const x = L.colX(seat);
+    const y = L.yOf(seat.position.y);
+    const exposure = exposureById.get(seat.id);
+    const momentLit = live ? live.get(seat.id) ?? 0 : null;
+    const total = dots.cols * dots.rows;
+    const lit = seatDots(total, exposure, verdict.tripMinutes, momentLit);
+    const isBest = whole && best.has(seat.id);
+    const isSelected = seat.id === selectedSeatId;
+
+    // Dots fill from the seat's own window flank inwards.
+    const positions: { x: number; y: number; order: number }[] = [];
+    for (let r = 0; r < dots.rows; r++) {
+      for (let k = 0; k < dots.cols; k++) {
+        const px = x + (k - (dots.cols - 1) / 2) * dots.dx;
+        const py = y + dots.top + r * dots.dy;
+        const fromLeft = k;
+        const fromRight = dots.cols - 1 - k;
+        const fromCenter = Math.abs(k - (dots.cols - 1) / 2);
+        const order = (seat.side === 'left' ? fromLeft : seat.side === 'right' ? fromRight : fromCenter) * dots.rows + r;
+        positions.push({ x: px, y: py, order });
+      }
+    }
+    positions.sort((a, b) => a.order - b.order);
+
+    const strongMin = exposure?.strongMinutes ?? 0;
+    const lightMin = exposure?.mildMinutes ?? 0;
+    const sunText =
+      strongMin + lightMin === 0
+        ? c.seatNoSun
+        : [strongMin > 0 ? c.seatStrong(formatDuration(strongMin, lang)) : null, lightMin > 0 ? c.seatLight(formatDuration(lightMin, lang)) : null].filter(Boolean).join('، ');
+    const label = `${c.seat} ${seat.id}، ${lang === 'ar' ? seat.labelAr : seat.labelEn}، ${sunText}`;
+
+    return (
+      <g
+        key={seat.id}
+        className="plan-seat"
+        role="button"
+        tabIndex={0}
+        aria-label={label}
+        aria-pressed={isSelected}
+        data-testid={`seat-${seat.id}`}
+        data-sun={lit.strong > 0 ? 'strong' : lit.light > 0 ? 'light' : 'none'}
+        onClick={() => onSelect(seat.id)}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault();
+            onSelect(seat.id);
+          }
+        }}
+      >
+        {isSelected && (
+          <rect x={x - cell.w / 2 - 5} y={y - cell.h / 2 - 5} width={cell.w + 10} height={cell.h + 10} rx={cell.r + 4} fill="none" stroke={COLOR.ring} strokeWidth="2.5" />
+        )}
+        <rect
+          className="plan-cell"
+          x={x - cell.w / 2}
+          y={y - cell.h / 2}
+          width={cell.w}
+          height={cell.h}
+          rx={cell.r}
+          fill={isBest ? COLOR.best : COLOR.cell}
+          stroke={isBest ? COLOR.best : !whole && best.has(seat.id) ? COLOR.dim : COLOR.cellEdge}
+          strokeWidth={!whole && best.has(seat.id) ? 2 : 1.5}
+        />
+        <text x={x} y={y + L.number.y} textAnchor="middle" fontSize={L.number.size} fontWeight="700" fill={isBest ? COLOR.bestInk : COLOR.number}>
+          {seat.id}
+        </text>
+        {positions.map((p, i) => {
+          const kind = i < lit.strong ? 'strong' : i < lit.strong + lit.light ? 'light' : 'ghost';
+          const fill = kind === 'strong' ? COLOR.sun : kind === 'light' ? (isBest ? COLOR.sunLightOnWhite : COLOR.sunLight) : isBest ? COLOR.ghostOnWhite : COLOR.ghost;
+          const bloom = whole && kind !== 'ghost';
+          const delay = bloom ? Math.min(560, bloomIndex++ * 14) : 0;
+          return <path key={i} d={rhombus(p.x, p.y, dots.r)} fill={fill} className={bloom ? 'dot-lit' : undefined} style={bloom ? ({ '--d': `${delay}ms` } as React.CSSProperties) : undefined} />;
+        })}
+        {L.minutes && whole && (
+          <text x={x} y={y + cell.h / 2 + 15} textAnchor="middle" fontSize="12" fontWeight="600" fill={COLOR.dim}>
+            {strongMin + lightMin > 0 ? c.minutesShort(strongMin + lightMin) : c.legendShade}
+          </text>
+        )}
+      </g>
+    );
+  });
+
+  // Glass along the flanks, the windshield and the rear window: where light can come in.
+  const glass = vehicle.windows.map((w) => {
+    if (w.side === 'left' || w.side === 'right') {
+      const sw = w as SideWindow;
+      const gx = w.side === 'left' ? body.x : body.x + body.w;
+      return <line key={w.id} x1={gx} y1={L.yOf(sw.yStart)} x2={gx} y2={L.yOf(sw.yEnd)} stroke={COLOR.glass} strokeWidth="4" strokeLinecap="round" />;
+    }
+    const ew = w as EndWindow;
+    const gy = w.side === 'front' ? body.y + 6 : body.y + body.h - 6;
+    return <line key={w.id} x1={L.xOf(ew.xStart)} y1={gy} x2={L.xOf(ew.xEnd)} y2={gy} stroke={COLOR.glass} strokeWidth="4" strokeLinecap="round" />;
+  });
+
+  // The driver sits in the first column of the front row.
+  const dx = L.colX({ col: 0, row: 0 } as VehicleSeat);
+  const dy = L.yOf(vehicle.driver.y);
 
   return (
-    <div className="block" data-testid="seat-plan">
-      <div className="block-head">
-        <h2 className="block-title">{c.seatPlan}</h2>
-        <span className="block-aside">{step ? c.seatPlanLive(formatTime(step.timeMs, lang)) : c.seatPlanTotal}</span>
-      </div>
+    <svg
+      className="plan-svg"
+      viewBox={`${L.view.x} ${L.view.y} ${L.view.w} ${L.view.h}`}
+      direction="ltr"
+      role="group"
+      aria-label={c.seatsLabel}
+      data-testid="seat-plan"
+      data-view={whole ? 'trip' : 'moment'}
+    >
+      {/* Side names, level above each flank */}
+      <text x={body.x} y={body.y - 14} textAnchor="start" fontSize="13.5" fontWeight="700" fill={COLOR.number}>
+        {c.sideDriver}
+      </text>
+      <text x={body.x + body.w} y={body.y - 14} textAnchor="end" fontSize="13.5" fontWeight="700" fill={COLOR.number}>
+        {c.sideDoor}
+      </text>
 
-      <div className="seat-plan">
-        <svg viewBox={`-52 -46 ${L.width + 104} ${L.height + 80}`} direction="ltr" role="group" aria-label={c.seatPlanHint}>
-          <defs>
-            {[1, 2, 3].map((lvl) => (
-              <pattern key={lvl} id={`hatch-${lvl}`} width={[0, 9, 6, 4][lvl]} height={[0, 9, 6, 4][lvl]} patternUnits="userSpaceOnUse" patternTransform="rotate(45)">
-                <line x1="0" y1="0" x2="0" y2={[0, 9, 6, 4][lvl]} stroke="#6b4d00" strokeWidth={lvl === 3 ? 1.3 : 1} opacity={0.55} />
-              </pattern>
-            ))}
-            <marker id="ray-head" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
-              <path d="M0 0 10 5 0 10z" fill="#f5b800" />
-            </marker>
-          </defs>
-
-          {/* Body */}
-          <rect x={L.body.x} y={L.body.y} width={L.body.w} height={L.body.h} rx={L.body.r} fill="#fbfcfe" stroke="#1b2f7c" strokeWidth="2.5" />
-          {/* Windshield */}
-          <path
-            d={`M ${L.body.x + 22} ${L.windshieldY} Q ${cx} ${L.windshieldY - 16} ${L.body.x + L.body.w - 22} ${L.windshieldY}`}
-            fill="none"
-            stroke="#8f98a4"
-            strokeWidth="5"
-            strokeLinecap="round"
-          />
-          {/* Door gap on the right side */}
-          <line x1={L.body.x + L.body.w} y1={L.door.y0} x2={L.body.x + L.body.w} y2={L.door.y1} stroke="#fbfcfe" strokeWidth="5" />
-          <line x1={L.body.x + L.body.w + 5} y1={L.door.y0} x2={L.body.x + L.body.w + 5} y2={L.door.y1} stroke="#1b2f7c" strokeWidth="2" strokeDasharray="5 4" />
-
-          {/* Side labels */}
-          <text x={cx} y={L.body.y - 22} textAnchor="middle" fontSize="12" fontWeight="600" fill="#555c66">
-            {c.front}
-          </text>
-          {/* Side names sit level above each flank so they read without tilting the head. */}
-          <text x={L.body.x - 4} y={L.body.y - 22} textAnchor="start" fontSize="13" fontWeight="700" fill="#1b2f7c">
-            {sideName('left', lang)}
-          </text>
-          <text x={L.body.x + L.body.w + 4} y={L.body.y - 22} textAnchor="end" fontSize="13" fontWeight="700" fill="#1b2f7c">
-            {sideName('right', lang)}
-          </text>
-          <path d={`M ${L.body.x + 6} ${L.body.y - 16} v 10`} stroke="#1b2f7c" strokeWidth="1.5" />
-          <path d={`M ${L.body.x + L.body.w - 6} ${L.body.y - 16} v 10`} stroke="#1b2f7c" strokeWidth="1.5" />
-
-          {/* Driver */}
-          <g aria-hidden="true">
-            <rect x={L.driver.x - sw / 2} y={L.driver.y - sh / 2} width={sw} height={sh} rx="9" fill="#e8edf9" stroke="#8f98a4" strokeWidth="1.5" />
-            <circle cx={L.driver.x} cy={L.driver.y - sh / 2 - 9} r="7" fill="none" stroke="#8f98a4" strokeWidth="2" />
-            <text x={L.driver.x} y={L.driver.y + 5} textAnchor="middle" fontSize="12" fontWeight="600" fill="#555c66">
-              {c.driver}
-            </text>
-          </g>
-
-          {/* Seats */}
-          {vehicle.seats.map((seat) => {
-            const p = L.place(seat);
-            const f = fractionOf(seat.id);
-            const lvl = sunLevel(f);
-            const isBest = best.has(seat.id);
-            const isSelected = seat.id === selectedSeatId;
-            const minutes = minutesById.get(seat.id) ?? 0;
-            const label = `${c.seat} ${seat.id}، ${lang === 'ar' ? seat.labelAr : seat.labelEn}، ${
-              minutes > 0 ? c.seatSunMinutes(formatDuration(minutes, lang)) : c.seatNoSun
-            }`;
-            return (
-              <g
-                key={seat.id}
-                className="seat"
-                role="button"
-                tabIndex={0}
-                aria-label={label}
-                aria-pressed={isSelected}
-                data-testid={`seat-${seat.id}`}
-                data-sun-level={lvl}
-                onClick={() => onSelect(seat.id)}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter' || e.key === ' ') {
-                    e.preventDefault();
-                    onSelect(seat.id);
-                  }
-                }}
-              >
-                <rect
-                  className="seat-cushion"
-                  x={p.x - sw / 2}
-                  y={p.y - sh / 2}
-                  width={sw}
-                  height={sh}
-                  rx="9"
-                  fill={FILL[lvl]}
-                  stroke={isSelected ? '#1b2f7c' : lvl > 0 ? '#c99700' : '#9aa3ae'}
-                  strokeWidth={isSelected ? 3.2 : 1.6}
-                />
-                {lvl > 0 && <rect x={p.x - sw / 2} y={p.y - sh / 2} width={sw} height={sh} rx="9" fill={`url(#hatch-${lvl})`} pointerEvents="none" />}
-                {/* Seat back */}
-                <rect x={p.x - sw / 2 + 4} y={p.y + sh / 2 - 8} width={sw - 8} height="5" rx="2.5" fill={isSelected ? '#1b2f7c' : '#8f98a4'} opacity={0.7} />
-                <text x={p.x} y={p.y + (vehicle.type === 'bus' ? 2 : -2)} textAnchor="middle" fontSize={vehicle.type === 'bus' ? 15 : 19} fontWeight="700" fill="#1b2f7c">
-                  {seat.id}
-                </text>
-                {!live && vehicle.type !== 'bus' && (
-                  <text x={p.x} y={p.y + 16} textAnchor="middle" fontSize="11.5" fontWeight="600" fill={lvl > 0 ? '#5a4100' : '#555c66'}>
-                    {minutes > 0 ? (lang === 'ar' ? `${minutes} د` : `${minutes}m`) : lang === 'ar' ? 'ضل' : 'shade'}
-                  </text>
-                )}
-                {isBest && (
-                  <path
-                    pathLength={1}
-                    className="best-ring"
-                    d={ringPath(p.x, p.y, sw / 2 + 7, sh / 2 + 7)}
-                    fill="none"
-                    stroke="#cc1f37"
-                    strokeWidth="2.6"
-                    strokeLinecap="round"
-                    strokeDasharray="1"
-                    style={{ animation: 'ink-draw 600ms 400ms cubic-bezier(0.16,1,0.3,1) both' }}
-                  />
-                )}
-              </g>
-            );
-          })}
-
-          {/* Sun and parallel rays, placed at the sun's bearing relative to the vehicle nose */}
-          {sunAngle !== null && <SunMarker angle={sunAngle} cx={cx} cy={cy} rx={L.body.w / 2 + 34} ry={L.body.h / 2 + 34} />}
-        </svg>
-      </div>
-
-      <div className="legend" aria-hidden="true">
-        <span className="legend-item">
-          <span className="legend-swatch is-sun" />
-          {c.legendSun}
-        </span>
-        <span className="legend-item">
-          <span className="legend-swatch is-some" />
-          {c.legendSome}
-        </span>
-        <span className="legend-item">
-          <span className="legend-swatch" />
-          {c.legendShade}
-        </span>
-      </div>
-
-      {selected && (
-        <div className="seat-detail" data-testid="seat-detail">
-          <span className="seat-detail-num">{selected.id}</span>
-          <span className="seat-detail-title">
-            {lang === 'ar' ? selected.labelAr : selected.labelEn}
-            {best.has(selected.id) ? ` · ${c.bestSeats}` : ''}
-          </span>
-          <span className="seat-detail-text">
-            {selectedMinutes > 0 ? c.seatSunMinutes(formatDuration(selectedMinutes, lang)) : c.seatNoSun}
-            {' · '}
-            {selected.isWindow ? c.seatWindow : c.seatInner}
-          </span>
-        </div>
+      {/* Body, floor and glass */}
+      <rect x={body.x} y={body.y} width={body.w} height={body.h} rx={body.r} fill={COLOR.floor} stroke={COLOR.frame} strokeWidth="2" />
+      {glass}
+      {/* Sliding door */}
+      {vehicle.type === 'microbus' && (
+        <line x1={body.x + body.w + 7} y1={L.yOf(1.37)} x2={body.x + body.w + 7} y2={L.yOf(2.38)} stroke={COLOR.dim} strokeWidth="2" strokeDasharray="5 4" />
       )}
-      <p className="hint">{c.seatPlanHint}</p>
-    </div>
-  );
-}
 
-function ringPath(x: number, y: number, rx: number, ry: number): string {
-  // An ellipse that overshoots its start a little, like a pen ring.
-  return `M ${x + rx * 0.2} ${y - ry} C ${x + rx * 1.15} ${y - ry}, ${x + rx * 1.1} ${y + ry}, ${x} ${y + ry} C ${x - rx * 1.12} ${y + ry}, ${x - rx * 1.1} ${y - ry * 1.02}, ${x + rx * 0.05} ${y - ry * 1.02} C ${x + rx * 0.45} ${y - ry * 1.02}, ${x + rx * 0.7} ${y - ry * 0.9}, ${x + rx * 0.85} ${y - ry * 0.75}`;
+      {/* Driver */}
+      <g aria-hidden="true">
+        <rect x={dx - cell.w / 2} y={dy - cell.h / 2} width={cell.w} height={cell.h} rx={cell.r} fill="none" stroke={COLOR.frame} strokeWidth="1.5" strokeDasharray="4 4" />
+        <circle cx={dx} cy={dy - cell.h * 0.12} r={cell.w * 0.16} fill="none" stroke={COLOR.dim} strokeWidth="2" />
+        <text x={dx} y={dy + cell.h * 0.3} textAnchor="middle" fontSize={L.number.size * 0.62} fontWeight="600" fill={COLOR.dim}>
+          {c.driver}
+        </text>
+      </g>
+
+      {/* The end that takes the sun (whole trip only) */}
+      {endSeats.length > 0 && (
+        <rect
+          x={Math.min(...endSeats.map((s) => L.colX(s))) - cell.w / 2 - 9}
+          y={L.yOf(endSeats[0]!.position.y) - cell.h / 2 - 9}
+          width={Math.max(...endSeats.map((s) => L.colX(s))) - Math.min(...endSeats.map((s) => L.colX(s))) + cell.w + 18}
+          height={cell.h + 18 + (L.minutes ? 12 : 0)}
+          rx={cell.r + 6}
+          fill="none"
+          stroke={COLOR.sun}
+          strokeWidth="2"
+          strokeDasharray="6 5"
+          data-testid="end-advice-mark"
+        />
+      )}
+
+      {seatNodes}
+
+      {sunAngle !== null && <SunMarker angle={sunAngle} cx={cx} cy={cy} rx={body.w / 2 + 26} ry={body.h / 2 + 18} />}
+    </svg>
+  );
 }
 
 function SunMarker({ angle, cx, cy, rx, ry }: { angle: number; cx: number; cy: number; rx: number; ry: number }) {
@@ -280,17 +310,72 @@ function SunMarker({ angle, cx, cy, rx, ry }: { angle: number; cx: number; cy: n
   const sy = cy + dy * ry;
   const px = -dy;
   const py = dx;
-  const rays = [-26, 0, 26].map((off) => {
-    const x0 = sx + px * off - dx * 16;
-    const y0 = sy + py * off - dy * 16;
-    return { x0, y0, x1: x0 - dx * 30, y1: y0 - dy * 30 };
-  });
   return (
-    <g aria-hidden="true">
-      {rays.map((r, i) => (
-        <line key={i} x1={r.x0} y1={r.y0} x2={r.x1} y2={r.y1} stroke="#f5b800" strokeWidth="2.4" strokeLinecap="round" markerEnd="url(#ray-head)" />
-      ))}
-      <circle cx={sx} cy={sy} r="13" fill="#ffe03a" stroke="#f5b800" strokeWidth="2" />
+    <g aria-hidden="true" data-testid="plan-sun">
+      {[-18, 0, 18].map((off) => {
+        const x0 = sx + px * off - dx * 17;
+        const y0 = sy + py * off - dy * 17;
+        return <line key={off} x1={x0} y1={y0} x2={x0 - dx * 14} y2={y0 - dy * 14} stroke={COLOR.sun} strokeWidth="3" strokeLinecap="round" />;
+      })}
+      <path d={rhombus(sx, sy, 13)} fill={COLOR.sun} />
+      <path d={rhombus(sx, sy, 5.5)} fill="#fff3d9" />
     </g>
+  );
+}
+
+/** One line about the chosen seat, under the plan. */
+export function SeatDetail({ vehicle, verdict, step, seatId, lang }: { vehicle: VehicleProfile; verdict: TripExposureVerdict; step: TimelineStep | null; seatId: number | null; lang: AppLanguage }) {
+  const c = COPY[lang];
+  const seat = vehicle.seats.find((s) => s.id === seatId);
+  const live = useMemo(() => (step ? seatSunlightAtStep(vehicle, step) : null), [vehicle, step]);
+  if (!seat) return null;
+  const e = verdict.seatsExposure.find((x) => x.seatId === seat.id);
+  let sub: ReactElement;
+  if (live) {
+    const f = live.get(seat.id) ?? 0;
+    const kind = f >= STRONG_SUN ? 'strong' : f >= MILD_SUN ? 'light' : 'none';
+    sub = <span className={kind === 'strong' ? 'is-strong' : kind === 'light' ? 'is-light' : undefined}>{c.seatNow[kind]}</span>;
+  } else if (!e || e.strongMinutes + e.mildMinutes === 0) {
+    sub = <span>{c.seatNoSun}</span>;
+  } else {
+    sub = (
+      <>
+        {e.strongMinutes > 0 && <span className="is-strong">{c.seatStrong(formatDuration(e.strongMinutes, lang))}</span>}
+        {e.strongMinutes > 0 && e.mildMinutes > 0 && ' · '}
+        {e.mildMinutes > 0 && <span className="is-light">{c.seatLight(formatDuration(e.mildMinutes, lang))}</span>}
+      </>
+    );
+  }
+  return (
+    <div className="seat-detail" data-testid="seat-detail">
+      <span className="seat-detail-num">{seat.id}</span>
+      <span className="seat-detail-text">
+        <span className="seat-detail-title">
+          {lang === 'ar' ? seat.labelAr : seat.labelEn}
+          {verdict.seatAdvice && verdict.bestSeatIds.includes(seat.id) ? ` · ${c.bestSeats}` : ''}
+        </span>
+        <span className="seat-detail-sub">{sub}</span>
+      </span>
+    </div>
+  );
+}
+
+/** Legend swatches: the three states of a lattice opening. */
+export function PlanLegend({ lang }: { lang: AppLanguage }) {
+  const c = COPY[lang];
+  const item = (fill: string, text: string) => (
+    <span className="legend-item">
+      <svg viewBox="0 0 12 12" aria-hidden="true">
+        <path d={rhombus(6, 6, 5.5)} fill={fill} />
+      </svg>
+      {text}
+    </span>
+  );
+  return (
+    <div className="legend" aria-hidden="true">
+      {item(COLOR.sun, c.legendStrong)}
+      {item(COLOR.sunLight, c.legendLight)}
+      {item('#3a6268', c.legendShade)}
+    </div>
   );
 }

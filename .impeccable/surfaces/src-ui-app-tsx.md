@@ -8,22 +8,22 @@ related_targets: ["src/ui"]
 # Surface: trip input and result (src/ui)
 
 Scope: the whole app surface, input screen and result screen. Mode: Operate.
-Audience: riders at a microbus terminal in direct sun, one hand, weak data; video viewers trying their own trip.
-Task: pick from, to, date and time, vehicle; read which side (ناحية السواق / ناحية الباب) and which seat; optionally inspect why (route, sun, timeline, 3D).
-Constraints: see PRODUCT.md. First screen is the form. Arabic RTL first; vehicle diagrams never mirrored.
+Audience: riders at a microbus terminal in direct sun, one hand, weak data; video viewers trying their own trip; phones first, tablets too.
+Task: pick from, to, date and time, vehicle; read which side (ناحية السواق / ناحية الباب), which seats, and which end to avoid; optionally watch the sun move (trip strip, 3D).
+Constraints: see PRODUCT.md. First screen is the form. Arabic RTL first; vehicle diagrams never mirrored. Owner notes (September 2026): the notebook looked childish; less text, the picture carries the answer with a short explanation; the 3D is visible on the result but renders after the instant answer; phone and tablet.
 
 ## Direction contract
 
-THESIS: The answer is a solved geography homework. The route is inked on graph paper, the sun angle is measured with a protractor against the road, and the teacher circles the best seat in red. It refuses the weather-app sky gradient, glass cards and emoji-studded chips.
+THESIS: The result is the view from behind a mashrabiya: cool deep shade is the ground of every picture, and sunlight appears only where the engine says it lands, as lattice light on the exact seats. It refuses the weather-app sky gradient, sun icons on glass cards, and the notebook.
 
-OWN-WORLD: Bright white 5 mm graph paper with a red margin rule on the right (RTL). Ballpoint blue ink for all text and primary actions, graphite for secondary text and construction lines, teacher red only for the verdict mark and errors, fluorescent highlighter yellow only for sun. Shade is clean paper plus blue ink hatching. Controls are ruled lines, ink-filled pills and stamped buttons. Ruq'ah handwriting appears only in short teacher annotations; every functional string is a sturdy Arabic sans.
+OWN-WORLD: Lime-plaster page (#f2f3ef) for reading, ink #0e1a1c, shade teal #123e44 for the verdict and the one primary action. Pictures sit in deep-shade windows (#0f2b30) framed by turned-wood lattice lines (#2a5a60). Sun is amber light only (#ffc247, hot core #ff9f1c, light #ffe3a3), drawn as lattice dots whose count is the dose. Best seats glow plaster-white inside the window. Reem Kufi (Fatimid Kufi) for the verdict and big numbers, Readex Pro for everything else, tabular figures.
 
-STORY: The rider understands that the site measured their real road against the real sun, believes it because the construction is visible, and sits on the circled side.
+STORY: The rider sees their microbus from above with light falling on real seats, believes it because the light moves with the time, and sits in the cool cells.
 
-FIRST VIEWPORT: A notebook page. Top: brand line and the date line ("التاريخ" doubles as the date and time input). Middle: "من" and "إلى" written on ruled lines with search, GPS as an ink icon; vehicle as two drawn silhouettes. Bottom thumb zone: a full-width ink-blue stamped button "حلّها". Result: the red-circled verdict "اقعد ناحية الباب" at 40px+ first, the plan-view microbus with the best seats circled, then a protractor figure, the trip ruler, the route figure, the 3D figure.
+FIRST VIEWPORT: Form: brand and EN toggle; one plaster slab with من and إلى and swap and GPS; departure time big with a sun-height lattice; vehicle silhouettes; full-width shade-teal button pinned in the thumb zone. Result: verdict in Reem Kufi 44px, one short line, best-seat badges, then the shade window (plan, lattice dots, whole-trip label) with the trip strip at its foot; the 3D window loads beneath.
 
-FORM: Egyptian school geography notebook (كشكول الجغرافيا), position 4 on the ordered list, seed key eb3be8d0. Raises: pencil hatching density as a color-free sun carrier (from exposure record); designed absence for shade and night (from seven-segment); color only on marks, text stays ink (from iridescent cloud); loading as a self-completing pencil sketch (from cloud quarry).
+FORM: Cairo mashrabiya light and shade, position 5 on the ordered list, seed key d2aa1e46. Raises: tabular numbers and two-value verdict contrast (from Ikeda); literal region labels (from industrial quote grammar); the verdict never shrinks (from TDR); one dominant field per screen (from gravity garden); real objects, not icons (from skeuomorph).
 
-Signature interaction: the verdict is drawn: the route inks itself along the grid, the protractor swings to the sun angle, and the red circle is drawn around the answer. Motion grammar: pen strokes (stroke-dashoffset), under 700 ms, skipped under reduced motion.
+Signature interaction: scrubbing the trip strip slides the light across the lattice seats and the 3D as the sun moves along the route; on arrival the light blooms into the cells from the sun's side. Motion grammar: light bloom (opacity and scale of lattice dots), under 600 ms, instant under reduced motion.
 
 FINISH: unreviewed and undocumented is unfinished; this build ends with the finish review, the verdict, DESIGN.md, and every shipping raster carrying its provenance
