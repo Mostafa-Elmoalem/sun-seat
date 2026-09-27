@@ -1,5 +1,6 @@
 import * as THREE from 'three';
-import { buildShell, type ShellPart, type ShellSlot } from './body.ts';
+import { buildShell, type ShellPart, type ShellParts, type ShellSlot } from './body.ts';
+import { decodeShell } from './shell-codec.ts';
 import { buildExterior } from './details.ts';
 import { buildWheels } from './wheels.ts';
 import { buildCabin, type Occupants } from './cabin.ts';
@@ -10,6 +11,22 @@ import { EGYPT_MICROBUS_14, type MicrobusSpec, type WindowSpec } from './spec.ts
 export * from './spec.ts';
 export { DEFAULT_LIVERY, type Livery } from './materials.ts';
 export type { Occupants } from './cabin.ts';
+export { encodeShell, decodeShell } from './shell-codec.ts';
+export type { ShellParts } from './body.ts';
+
+/**
+ * Downloads a shell made by scripts/build-microbus-shell.mts. Resolves to null when the
+ * file is missing, stale or offline, so the caller can fall back to cutting it on the device.
+ */
+export async function loadShell(spec: MicrobusSpec, url: string, init?: RequestInit): Promise<ShellParts | null> {
+  try {
+    const response = await fetch(url, init);
+    if (!response.ok) return null;
+    return decodeShell(spec, await response.arrayBuffer());
+  } catch {
+    return null;
+  }
+}
 
 export interface BuildOptions {
   livery?: Partial<Livery>;
@@ -23,6 +40,8 @@ export interface BuildOptions {
   occupants?: boolean;
   /** A soft dark ellipse on the ground under the body. */
   contactShadow?: boolean;
+  /** A precomputed shell (see loadShell). Without it the shell is cut on the device, which takes seconds on a phone. */
+  shell?: ShellParts | null;
 }
 
 export interface MicrobusModel {
@@ -74,7 +93,7 @@ export function buildMicrobus(spec: MicrobusSpec = EGYPT_MICROBUS_14, options: B
   const group = new THREE.Group();
   group.name = 'EgyptMicrobus';
 
-  const shell = buildShell(spec);
+  const shell = options.shell ?? buildShell(spec);
   const shellMesh = (part: ShellPart, skin: THREE.Material, name: string) => {
     const bySlot: Record<ShellSlot, THREE.Material> = { outer: skin, inner: materials.interior, reveal: materials.trim, well: materials.well };
     const mesh = new THREE.Mesh(part.geometry, part.slots.map((slot) => bySlot[slot]));
