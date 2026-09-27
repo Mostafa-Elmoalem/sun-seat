@@ -1,20 +1,17 @@
-import { Component, lazy, Suspense, useEffect, useMemo, useState, type ReactNode } from 'react';
+import { Component, lazy, Suspense, useMemo, useState, type ReactNode } from 'react';
 import { useTripStore } from '../store/trip-store.ts';
 import { defaultVehicleRepository } from '../../core/vehicles/vehicle-repository.ts';
-import type { TripExposureVerdict, VehicleProfile } from '../../core/types/vehicle.ts';
 import { COPY, verdictHeadline, type AppLanguage } from '../i18n/copy.ts';
 import { formatDay, formatTime } from '../format.ts';
-import { Answer } from './Verdict.tsx';
+import { SideComparison, Verdict } from './Verdict.tsx';
 import { defaultFocusIndex } from '../focus.ts';
-import { PlanLegend, SeatDetail, SeatPlan } from './SeatPlan.tsx';
-import { TripStrip } from './TripStrip.tsx';
+import { SeatPlan } from './SeatPlan.tsx';
+import { TripRuler } from './TripRuler.tsx';
+import { RouteFigure } from './RouteFigure.tsx';
 import { HowItWorks } from './HowItWorks.tsx';
-import { IconChevronDown, IconClose, IconEdit, IconShare, IconTripArrow } from './Icons.tsx';
+import { IconChevronDown, IconCube, IconEdit, IconShare, IconTripArrow } from './Icons.tsx';
 
 const VehicleCanvas = lazy(() => import('../three/VehicleCanvas.tsx'));
-
-/** Download size of the 3D view (three.js chunk plus the microbus body), shown before a manual load. */
-const THREE_KB = 250;
 
 class ThreeBoundary extends Component<{ fallback: ReactNode; children: ReactNode }, { failed: boolean }> {
   override state = { failed: false };
@@ -30,118 +27,20 @@ function short(name: string): string {
   return name.replace(/^موقف /, '').replace(/\s*\(.*\)$/, '');
 }
 
-/** A lattice row whose openings light up in turn: the 3D is on its way. */
-function LoadingLattice() {
-  return (
-    <svg className="loading-lattice" width="150" height="20" viewBox="0 0 150 20" aria-hidden="true">
-      {Array.from({ length: 9 }, (_, i) => (
-        <rect key={i} x={i * 16 + 3} y="3" width="10" height="10" rx="1.5" transform={`rotate(45 ${i * 16 + 8} 8)`} style={{ '--i': i } as React.CSSProperties} />
-      ))}
-    </svg>
-  );
-}
-
-function wantsManual3d(): boolean {
-  const conn = (navigator as Navigator & { connection?: { saveData?: boolean; effectiveType?: string } }).connection;
-  return !!conn?.saveData || /(^|-)2g$/.test(conn?.effectiveType ?? '');
-}
-
-/**
- * The 3D view renders after the answer: it starts loading once the page is idle,
- * or on request when the rider saves data or is on a 2G connection.
- */
-function ThreeStage(props: {
-  vehicle: VehicleProfile;
-  verdict: TripExposureVerdict;
-  scrubIndex: number | null;
-  selectedSeatId: number | null;
-  lang: AppLanguage;
-  destinationName: string;
-}) {
-  const c = COPY[props.lang];
-  const [show, setShow] = useState(false);
-  const [manual] = useState(wantsManual3d);
-
-  useEffect(() => {
-    if (manual) return;
-    const w = window as Window & { requestIdleCallback?: (cb: () => void, o?: { timeout: number }) => number; cancelIdleCallback?: (id: number) => void };
-    if (w.requestIdleCallback) {
-      const id = w.requestIdleCallback(() => setShow(true), { timeout: 1500 });
-      return () => w.cancelIdleCallback?.(id);
-    }
-    const t = setTimeout(() => setShow(true), 700);
-    return () => clearTimeout(t);
-  }, [manual]);
-
-  const poster = (loading: boolean) => (
-    <div className="three-poster" data-testid={loading ? 'three-loading' : 'three-manual'}>
-      {loading ? (
-        <>
-          <LoadingLattice />
-          <span>{c.threeLoading}</span>
-        </>
-      ) : (
-        <>
-          <button type="button" className="cta" onClick={() => setShow(true)} data-testid="open-3d">
-            {c.threeLoad}
-          </button>
-          <span>{c.threeCost(THREE_KB)}</span>
-        </>
-      )}
-    </div>
-  );
-
-  if (!show) return poster(!manual);
-  return (
-    <ThreeBoundary fallback={<div className="three-poster">{c.threeFailed}</div>}>
-      <Suspense fallback={poster(true)}>
-        <VehicleCanvas
-          vehicle={props.vehicle}
-          verdict={props.verdict}
-          scrubIndex={props.scrubIndex}
-          selectedSeatId={props.selectedSeatId}
-          lang={props.lang}
-          destinationName={props.destinationName}
-        />
-      </Suspense>
-    </ThreeBoundary>
-  );
-}
-
 export function ResultView({ onToast }: { onToast: (text: string) => void }) {
   const s = useTripStore();
   const c = COPY[s.lang];
   const lang: AppLanguage = s.lang;
+  const [show3d, setShow3d] = useState(false);
   const vehicle = useMemo(() => defaultVehicleRepository.getProfile(s.vehicleId), [s.vehicleId]);
-  const [playing, setPlaying] = useState(false);
-  const { verdict, route, origin, destination, scrubIndex, setScrub } = s;
-
-  // Play the trip: sweep the timeline in about 12 seconds; every picture follows.
-  useEffect(() => {
-    if (!playing || !verdict) return;
-    const total = verdict.timeline.length;
-    const stepMs = Math.max(30, 12_000 / Math.max(1, total));
-    let i = scrubIndex ?? -1;
-    if (i >= total - 1) i = -1;
-    const timer = setInterval(() => {
-      i += 1;
-      if (i >= total) {
-        setPlaying(false);
-        return;
-      }
-      setScrub(i);
-    }, stepMs);
-    return () => clearInterval(timer);
-    // The interval owns the playhead once started; scrubIndex is read only at the start.
-  }, [playing, verdict, setScrub]);
-
+  const { verdict, route, origin, destination } = s;
   if (!verdict || !route || !origin || !destination) return null;
 
-  const step = scrubIndex !== null ? verdict.timeline[Math.min(scrubIndex, verdict.timeline.length - 1)] ?? null : null;
-  const shownStep = step ?? verdict.timeline[defaultFocusIndex(verdict)] ?? null;
+  const step = s.scrubIndex !== null ? verdict.timeline[Math.min(s.scrubIndex, verdict.timeline.length - 1)] ?? null : null;
+  const focusIndex = defaultFocusIndex(verdict);
+  const shownStep = step ?? verdict.timeline[focusIndex] ?? null;
   const from = short(lang === 'ar' ? origin.nameAr : origin.nameEn);
   const to = short(lang === 'ar' ? destination.nameAr : destination.nameEn);
-  const planKey = `${verdict.timeline[0]?.timeMs ?? 0}-${verdict.tripMinutes}-${vehicle.id}`;
 
   const share = async () => {
     const head = verdictHeadline(verdict.status, verdict.recommendedSide, lang);
@@ -155,95 +54,112 @@ export function ResultView({ onToast }: { onToast: (text: string) => void }) {
       await navigator.clipboard.writeText(`${text} ${url}`);
       onToast(c.copied);
     } catch {
-      // The rider closed the share sheet; nothing to do.
+      // The user closed the share sheet; nothing to do.
     }
   };
 
-  const backToTrip = () => {
-    setPlaying(false);
-    setScrub(null);
-  };
+  const bestLine =
+    verdict.status !== 'NIGHT' && verdict.status !== 'DOES_NOT_MATTER' && verdict.bestSeatIds.length > 0
+      ? `${c.bestSeats}: ${verdict.bestSeatIds.join(lang === 'ar' ? '، ' : ', ')}`
+      : null;
 
   return (
-    <main className="result" data-testid="results-screen">
-      <div className="result-bar">
-        <button type="button" className="btn-quiet" onClick={s.goToInput} data-testid="edit-trip">
-          <IconEdit />
-          {c.edit}
-        </button>
-        <div className="trip-summary" data-testid="trip-summary">
-          <p className="trip-summary-route">
-            <span>{from}</span>
-            <IconTripArrow rtl={lang === 'ar'} />
-            <span>{to}</span>
-          </p>
-          <p className="trip-summary-meta">
-            {formatDay(s.departure, lang)} · {formatTime(s.departure, lang)} · {vehicle.type === 'bus' ? c.bus : c.microbus}
-          </p>
+    <main className="result-grid" data-testid="results-screen">
+      <div className="result-col">
+        <div className="result-bar">
+          <button type="button" className="icon-btn" onClick={s.goToInput} data-testid="edit-trip">
+            <IconEdit />
+            {c.edit}
+          </button>
+          <div className="trip-summary" data-testid="trip-summary">
+            <p className="trip-summary-route">
+              {from} <IconTripArrow rtl={lang === 'ar'} /> {to}
+            </p>
+            <p className="trip-summary-time">
+              {formatDay(s.departure, lang)} · {formatTime(s.departure, lang)} · {vehicle.type === 'bus' ? c.bus : c.microbus}
+            </p>
+          </div>
+          <button type="button" className="icon-btn" onClick={() => void share()} data-testid="share-btn">
+            <IconShare />
+            {c.share}
+          </button>
         </div>
-        <button type="button" className="btn-quiet" onClick={() => void share()} aria-label={c.share} data-testid="share-btn">
-          <IconShare />
-        </button>
+
+        <Verdict verdict={verdict} lang={lang} />
+
+        {bestLine && (
+          <p className="teacher-note" data-testid="best-seats">
+            {bestLine}
+          </p>
+        )}
+
+        <SeatPlan vehicle={vehicle} verdict={verdict} step={step} selectedSeatId={s.selectedSeatId} onSelect={s.selectSeat} lang={lang} />
+
+        <SideComparison verdict={verdict} vehicle={vehicle} weather={s.weather} lang={lang} />
       </div>
 
-      <div className="result-grid">
-        <Answer verdict={verdict} vehicle={vehicle} weather={s.weather} selectedSeatId={s.selectedSeatId} onSelectSeat={s.selectSeat} lang={lang} />
+      <div className="result-col">
+        <TripRuler verdict={verdict} scrubIndex={s.scrubIndex} focusIndex={focusIndex} onScrub={s.setScrub} lang={lang} />
 
-        <section className="window plan-window" aria-label={c.seatsLabel}>
-          <div className="window-head">
-            {step ? (
-              <span className="state" data-testid="plan-state" data-view="moment">
-                {c.atTime(formatTime(step.timeMs, lang))}
-                <button type="button" className="state-reset" onClick={backToTrip} aria-label={c.backToTrip} data-testid="ruler-reset">
-                  <IconClose />
-                </button>
-              </span>
-            ) : (
-              <span className="state is-whole" data-testid="plan-state" data-view="trip">
-                {c.wholeTrip}
-              </span>
-            )}
-            <PlanLegend lang={lang} />
+        <RouteFigure route={route} verdict={verdict} step={shownStep} origin={origin} destination={destination} lang={lang} />
+
+        <section className="block" data-testid="three-block">
+          <div className="block-head">
+            <h2 className="block-title">{c.threeTitle}</h2>
           </div>
-          <SeatPlan key={planKey} vehicle={vehicle} verdict={verdict} step={step} selectedSeatId={s.selectedSeatId} onSelect={s.selectSeat} lang={lang} />
-          <SeatDetail vehicle={vehicle} verdict={verdict} step={step} seatId={s.selectedSeatId} lang={lang} />
-          <TripStrip
-            vehicle={vehicle}
-            verdict={verdict}
-            scrubIndex={scrubIndex}
-            onScrub={(i) => {
-              setPlaying(false);
-              setScrub(i);
-            }}
-            playing={playing}
-            onTogglePlay={() => setPlaying((p) => !p)}
-            lang={lang}
-          />
+          <div className="figure">
+            {show3d ? (
+              <ThreeBoundary fallback={<div className="three-placeholder"><p>{c.threeFailed}</p></div>}>
+                <Suspense
+                  fallback={
+                    <div className="sketching" data-testid="three-loading">
+                      <svg width="120" height="48" viewBox="0 0 120 48" aria-hidden="true">
+                        <path pathLength={1} d="M6 36V16c0-3 2-5 5-5h66c5 0 9 2 12 5l12 10c2 2 3 4 3 6v4H6Z" />
+                      </svg>
+                      {c.threeLoading}
+                    </div>
+                  }
+                >
+                  <VehicleCanvas
+                    vehicle={vehicle}
+                    verdict={verdict}
+                    scrubIndex={s.scrubIndex}
+                    onScrub={s.setScrub}
+                    selectedSeatId={s.selectedSeatId}
+                    lang={lang}
+                  />
+                </Suspense>
+              </ThreeBoundary>
+            ) : (
+              <div className="three-placeholder">
+                <IconCube style={{ width: 40, height: 40, color: 'var(--ink)' }} />
+                <p>
+                  {lang === 'ar'
+                    ? `شوف الشمس بتدخل من أنهي شباك وبتقع على أنهي كرسي، ومن كرسي رقم ${s.selectedSeatId ?? verdict.bestSeatIds[0] ?? 1} بالظبط.`
+                    : `See which window the sun comes through and which seats it lands on, including from seat ${s.selectedSeatId ?? verdict.bestSeatIds[0] ?? 1}.`}
+                </p>
+                <button type="button" className="cta cta-secondary" style={{ maxWidth: 280 }} onClick={() => setShow3d(true)} data-testid="open-3d">
+                  {c.threeLoad}
+                </button>
+                <p className="hint">{c.threeCost}</p>
+              </div>
+            )}
+          </div>
         </section>
 
-        <section className="window three-window" aria-label={c.threeLabel} data-testid="three-block">
-          <ThreeStage vehicle={vehicle} verdict={verdict} scrubIndex={scrubIndex} selectedSeatId={s.selectedSeatId} lang={lang} destinationName={to} />
-        </section>
-
-        <details className="details" data-testid="how-it-works">
+        <details className="more" data-testid="how-it-works">
           <summary>
             {c.howTitle}
             <IconChevronDown />
           </summary>
-          <HowItWorks verdict={verdict} vehicle={vehicle} route={route} step={shownStep} origin={origin} destination={destination} lang={lang} />
+          <HowItWorks verdict={verdict} route={route} lang={lang} />
         </details>
 
-        <div className="again">
-          {s.fromSharedLink ? (
-            <button type="button" className="cta" onClick={s.goToInput} data-testid="calc-yours">
-              {c.calcYours}
-            </button>
-          ) : (
-            <button type="button" className="cta cta-secondary" onClick={s.goToInput} data-testid="calc-another">
-              {c.another}
-            </button>
-          )}
-        </div>
+        {s.fromSharedLink && (
+          <button type="button" className="cta" onClick={s.goToInput} data-testid="calc-yours">
+            {c.calcYours}
+          </button>
+        )}
       </div>
     </main>
   );

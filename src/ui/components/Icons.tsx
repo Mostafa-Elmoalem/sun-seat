@@ -202,26 +202,15 @@ export function BusSilhouette() {
   );
 }
 
-/** Brand mark: a mashrabiya cell of four lattice openings, one of them lit by the sun. */
+/** Brand mark: a sun cut by a window frame, drawn in ink and highlighter. */
 export function BrandMark() {
-  const rhombus = (cx: number, cy: number, r: number) => `M${cx} ${cy - r}L${cx + r} ${cy}L${cx} ${cy + r}L${cx - r} ${cy}Z`;
   return (
     <svg className="brand-mark" viewBox="0 0 34 34" aria-hidden="true">
-      <rect x="1" y="1" width="32" height="32" rx="9" fill="#123e44" />
-      <path d={rhombus(11, 11, 5.6)} fill="#2a5a60" />
-      <path d={rhombus(23, 11, 5.6)} fill="#ffb52e" />
-      <path d={rhombus(11, 23, 5.6)} fill="#2a5a60" />
-      <path d={rhombus(23, 23, 5.6)} fill="#2a5a60" />
-    </svg>
-  );
-}
-
-/** A lattice opening with light in it: the sun as this app draws it. */
-export function SunGlyph({ size = 22 }: { size?: number }) {
-  return (
-    <svg width={size} height={size} viewBox="0 0 22 22" aria-hidden="true">
-      <path d="M11 1.5 20.5 11 11 20.5 1.5 11Z" fill="#ffb52e" />
-      <path d="M11 6.5 15.5 11 11 15.5 6.5 11Z" fill="#fff3d9" />
+      <rect x="2" y="5" width="30" height="24" rx="5" fill="#fbfcfe" stroke="#1b2f7c" strokeWidth="2.2" />
+      <path d="M17 5v24" stroke="#1b2f7c" strokeWidth="2.2" />
+      <circle cx="24.5" cy="17" r="5" fill="#ffe03a" stroke="#f5b800" strokeWidth="1.6" />
+      <path d="M5.5 25 13 12" stroke="#8f98a4" strokeWidth="1.4" strokeLinecap="round" />
+      <path d="M9 25l4-7" stroke="#8f98a4" strokeWidth="1.4" strokeLinecap="round" />
     </svg>
   );
 }

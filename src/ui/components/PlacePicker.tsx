@@ -104,8 +104,9 @@ export function PlacePicker({ field, lang, recentPlaces, onPick, onClose }: Plac
         <span className="place-row-icon">
           <PlaceKindIcon kind={p.kind} />
         </span>
-        <span className="place-row-text">
+        <span>
           <span className="place-row-name">{placeName(p, lang)}</span>
+          <br />
           <span className="place-row-context">{placeContext(p, lang)}</span>
         </span>
       </button>
@@ -119,8 +120,8 @@ export function PlacePicker({ field, lang, recentPlaces, onPick, onClose }: Plac
     <div className="sheet" role="dialog" aria-modal="true" aria-label={field === 'from' ? c.from : c.to}>
       <div className="sheet-panel">
         <div className="sheet-head">
-          <button type="button" className="btn-quiet" onClick={onClose} aria-label={c.back}>
-            <IconBack className="icon icon-back" />
+          <button type="button" className="icon-btn" onClick={onClose} aria-label={c.back}>
+            <IconBack />
           </button>
           <label className="visually-hidden" htmlFor="place-search">
             {field === 'from' ? c.from : c.to}
@@ -141,11 +142,11 @@ export function PlacePicker({ field, lang, recentPlaces, onPick, onClose }: Plac
             data-testid="place-search-input"
           />
           {hasQuery ? (
-            <button type="button" className="btn-quiet" onClick={() => setQuery('')} aria-label={c.clear}>
+            <button type="button" className="icon-btn" onClick={() => setQuery('')} aria-label={c.clear}>
               <IconClose />
             </button>
           ) : (
-            <span className="btn-quiet" aria-hidden="true" style={{ color: 'var(--graphite)' }}>
+            <span className="icon-btn" aria-hidden="true" style={{ color: 'var(--pencil)' }}>
               <IconSearch />
             </span>
           )}
@@ -154,14 +155,15 @@ export function PlacePicker({ field, lang, recentPlaces, onPick, onClose }: Plac
         <div className="sheet-body">
           {!hasQuery && (
             <>
-              <ul className="sheet-list">
+              <ul style={{ listStyle: 'none' }}>
                 <li>
                   <button type="button" className="place-row place-row-gps" onClick={locate} disabled={gps === 'locating'}>
                     <span className="place-row-icon">
                       <IconLocate />
                     </span>
-                    <span className="place-row-text">
+                    <span>
                       <span className="place-row-name">{gps === 'locating' ? c.locating : c.myLocation}</span>
+                      <br />
                       <span className="place-row-context">{gps === 'denied' ? c.gpsDenied : c.myLocationHint}</span>
                     </span>
                   </button>
@@ -171,12 +173,12 @@ export function PlacePicker({ field, lang, recentPlaces, onPick, onClose }: Plac
               {recentPlaces.length > 0 && (
                 <>
                   <p className="sheet-group-label">{c.recents}</p>
-                  <ul className="sheet-list">{recentPlaces.map((p, i) => row(p, `r-${i}-${p.id}`))}</ul>
+                  <ul style={{ listStyle: 'none' }}>{recentPlaces.map((p, i) => row(p, `r-${i}-${p.id}`))}</ul>
                 </>
               )}
 
               <p className="sheet-group-label">{c.popular}</p>
-              <ul className="sheet-list">
+              <ul style={{ listStyle: 'none' }}>
                 {defaultPlacesRepository.getPopular(10).map((p) => row(p, `pop-${p.id}`))}
               </ul>
             </>
@@ -188,7 +190,7 @@ export function PlacePicker({ field, lang, recentPlaces, onPick, onClose }: Plac
               {local.length > 0 && (
                 <>
                   <p className="sheet-group-label">{c.localResults}</p>
-                  <ul className="sheet-list">{local.map((p) => row(p, `l-${p.id}`))}</ul>
+                  <ul style={{ listStyle: 'none' }}>{local.map((p) => row(p, `l-${p.id}`))}</ul>
                 </>
               )}
               {(onlineExtra.length > 0 || online.status === 'loading') && (
@@ -196,7 +198,7 @@ export function PlacePicker({ field, lang, recentPlaces, onPick, onClose }: Plac
                   <p className="sheet-group-label" aria-live="polite">
                     {online.status === 'loading' ? c.searchingOnline : c.onlineResults}
                   </p>
-                  <ul className="sheet-list">{onlineExtra.map((p) => row(p, `o-${p.id}`))}</ul>
+                  <ul style={{ listStyle: 'none' }}>{onlineExtra.map((p) => row(p, `o-${p.id}`))}</ul>
                 </>
               )}
               {nothingFound && <p className="sheet-note">{c.noResults}</p>}

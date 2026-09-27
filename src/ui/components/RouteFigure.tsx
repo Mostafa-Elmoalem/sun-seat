@@ -7,12 +7,13 @@ import { formatTime } from '../format.ts';
 import { IconInfo } from './Icons.tsx';
 
 /**
- * The real road, north up, with a compass ring at the moment being shown: the road
- * heading, the sun's bearing and the angle between them, the whole calculation in one figure.
+ * The route inked on the page's own graph paper, north up, with a protractor at
+ * the moment being inspected: the road heading, the sun bearing, and the angle
+ * between them, which is the whole calculation in one figure.
  */
 
 const W = 340;
-const H = 240;
+const H = 250;
 const PAD = 34;
 
 function shortName(p: Place, lang: AppLanguage): string {
@@ -30,6 +31,7 @@ export function RouteFigure({
 }: {
   route: DecodedRoute;
   verdict: TripExposureVerdict;
+  /** The moment to draw the protractor at (the inspected minute, or the shared default). */
   step: TimelineStep | null;
   origin: Place;
   destination: Place;
@@ -56,93 +58,115 @@ export function RouteFigure({
     return { project, d };
   }, [route]);
 
+  const focus = step;
+
   const start = route.coordinates[0];
   const end = route.coordinates[route.coordinates.length - 1];
   const [sx, sy] = start ? geo.project(start[0], start[1]) : [0, 0];
   const [ex, ey] = end ? geo.project(end[0], end[1]) : [0, 0];
 
-  let compass: ReactElement | null = null;
-  if (step) {
-    const [fx, fy] = geo.project(step.location.lat, step.location.lng);
-    const R = 38;
+  let protractor: ReactElement | null = null;
+  if (focus) {
+    const [fx, fy] = geo.project(focus.location.lat, focus.location.lng);
+    const R = 40;
     const toXY = (bearing: number, r: number): [number, number] => {
       const b = (bearing * Math.PI) / 180;
       return [fx + Math.sin(b) * r, fy - Math.cos(b) * r];
     };
-    const [hx, hy] = toXY(step.headingDeg, R + 6);
-    const [ox, oy] = toXY(step.solarAzimuthDeg, R + 24);
-    const [ix, iy] = toXY(step.solarAzimuthDeg, R - 2);
-    const rel = step.relativeAngleDeg > 180 ? step.relativeAngleDeg - 360 : step.relativeAngleDeg;
+    const [hx, hy] = toXY(focus.headingDeg, R + 6);
+    const sunUp = !focus.isNight;
+    const [ox, oy] = toXY(focus.solarAzimuthDeg, R + 26);
+    const [ix, iy] = toXY(focus.solarAzimuthDeg, R - 2);
+    const rel = focus.relativeAngleDeg > 180 ? focus.relativeAngleDeg - 360 : focus.relativeAngleDeg;
     const arcR = R * 0.62;
-    const [ax0, ay0] = toXY(step.headingDeg, arcR);
-    const [ax1, ay1] = toXY(step.headingDeg + rel, arcR);
-    const [lx, ly] = toXY(step.headingDeg + rel / 2, arcR + 13);
-    compass = (
+    const [ax0, ay0] = toXY(focus.headingDeg, arcR);
+    const [ax1, ay1] = toXY(focus.headingDeg + rel, arcR);
+    const [lx, ly] = toXY(focus.headingDeg + rel / 2, arcR + 13);
+    const ticks = Array.from({ length: 24 }, (_, i) => i * 15);
+
+    protractor = (
       <g>
-        <circle cx={fx} cy={fy} r={R} fill="rgba(227,236,234,0.85)" stroke="#3f7178" strokeWidth="1.2" />
-        {Array.from({ length: 24 }, (_, i) => i * 15).map((t) => {
+        <circle cx={fx} cy={fy} r={R} fill="rgba(232,237,249,0.72)" stroke="#3d55a8" strokeWidth="1.2" />
+        {ticks.map((t) => {
           const [a, b] = toXY(t, R);
           const [c2, d2] = toXY(t, R - (t % 90 === 0 ? 8 : 4));
-          return <line key={t} x1={a} y1={b} x2={c2} y2={d2} stroke="#3f7178" strokeWidth="1" />;
+          return <line key={t} x1={a} y1={b} x2={c2} y2={d2} stroke="#3d55a8" strokeWidth="1" />;
         })}
-        <line x1={fx} y1={fy} x2={hx} y2={hy} stroke="#123e44" strokeWidth="2.6" markerEnd="url(#head-arrow)" />
-        {!step.isNight && (
+        {/* Road heading */}
+        <line x1={fx} y1={fy} x2={hx} y2={hy} stroke="#1b2f7c" strokeWidth="2.6" markerEnd="url(#head-arrow)" />
+        {sunUp && (
           <>
-            <line x1={ox} y1={oy} x2={ix} y2={iy} stroke="#ffb52e" strokeWidth="2.6" strokeLinecap="round" />
-            <path d={`M${ox} ${oy - 10}L${ox + 10} ${oy}L${ox} ${oy + 10}L${ox - 10} ${oy}Z`} fill="#ffb52e" />
-            <path d={`M ${ax0} ${ay0} A ${arcR} ${arcR} 0 0 ${rel > 0 ? 1 : 0} ${ax1} ${ay1}`} fill="none" stroke="#8a5a00" strokeWidth="1.8" />
-            <text x={lx} y={ly + 4} textAnchor="middle" fontSize="11" fontWeight="700" fill="#8a5a00">
+            <line x1={ox} y1={oy} x2={ix} y2={iy} stroke="#f5b800" strokeWidth="2.6" strokeLinecap="round" />
+            <circle cx={ox} cy={oy} r="9" fill="#ffe03a" stroke="#f5b800" strokeWidth="1.8" />
+            <path
+              d={`M ${ax0} ${ay0} A ${arcR} ${arcR} 0 0 ${rel > 0 ? 1 : 0} ${ax1} ${ay1}`}
+              fill="none"
+              stroke="#cc1f37"
+              strokeWidth="1.8"
+            />
+            <text x={lx} y={ly + 4} textAnchor="middle" fontSize="11" fontWeight="700" fill="#cc1f37">
               {Math.abs(Math.round(rel))}°
             </text>
           </>
         )}
-        <circle cx={fx} cy={fy} r="3.5" fill="#123e44" />
+        <circle cx={fx} cy={fy} r="3.5" fill="#1b2f7c" />
       </g>
     );
   }
 
   return (
-    <figure className="route-figure" data-testid="route-figure">
-      <svg viewBox={`0 0 ${W} ${H}`} direction="ltr" role="img" aria-label={`${c.routeFigure}: ${shortName(origin, lang)} ${lang === 'ar' ? 'إلى' : 'to'} ${shortName(destination, lang)}`}>
-        <defs>
-          <marker id="head-arrow" viewBox="0 0 10 10" refX="7" refY="5" markerWidth="6" markerHeight="6" orient="auto">
-            <path d="M0 0 10 5 0 10z" fill="#123e44" />
-          </marker>
-        </defs>
-        <g transform={`translate(${W - 22} 30)`}>
-          <path d="M0 -16 L6 6 L0 2 L-6 6 Z" fill="#123e44" />
-          <text x="0" y="20" textAnchor="middle" fontSize="11" fontWeight="700" fill="#123e44">
-            {c.north}
+    <section className="block" data-testid="route-figure">
+      <div className="block-head">
+        <h2 className="block-title">{c.routeFigure}</h2>
+        {focus && <span className="block-aside">{formatTime(focus.timeMs, lang)}</span>}
+      </div>
+      <figure className="figure">
+        <svg viewBox={`0 0 ${W} ${H}`} direction="ltr" role="img" aria-label={`${shortName(origin, lang)} ${lang === 'ar' ? 'إلى' : 'to'} ${shortName(destination, lang)}`}>
+          <defs>
+            <marker id="head-arrow" viewBox="0 0 10 10" refX="7" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+              <path d="M0 0 10 5 0 10z" fill="#1b2f7c" />
+            </marker>
+          </defs>
+          {/* North arrow */}
+          <g transform={`translate(${W - 22} 30)`}>
+            <path d="M0 -16 L6 6 L0 2 L-6 6 Z" fill="#1b2f7c" />
+            <text x="0" y="20" textAnchor="middle" fontSize="11" fontWeight="700" fill="#1b2f7c">
+              {c.north}
+            </text>
+          </g>
+          <path
+            d={geo.d}
+            fill="none"
+            stroke="#1b2f7c"
+            strokeWidth="3"
+            strokeLinejoin="round"
+            strokeLinecap="round"
+            strokeDasharray={route.isApproximate ? '6 6' : undefined}
+            pathLength={route.isApproximate ? undefined : 1}
+            style={route.isApproximate ? undefined : { strokeDasharray: 1, animation: 'ink-draw 900ms cubic-bezier(0.16,1,0.3,1) both' }}
+          />
+          <circle cx={sx} cy={sy} r="6" fill="#fbfcfe" stroke="#1b2f7c" strokeWidth="2.5" />
+          <circle cx={ex} cy={ey} r="6" fill="#1b2f7c" />
+          <text x={sx} y={sy - 12} textAnchor="middle" fontSize="12" fontWeight="600" fill="#1d2126" paintOrder="stroke" stroke="#fbfcfe" strokeWidth="4">
+            {shortName(origin, lang)}
           </text>
-        </g>
-        <path
-          d={geo.d}
-          fill="none"
-          stroke="#123e44"
-          strokeWidth="3"
-          strokeLinejoin="round"
-          strokeLinecap="round"
-          strokeDasharray={route.isApproximate ? '6 6' : undefined}
-        />
-        <circle cx={sx} cy={sy} r="6" fill="#fbfbf8" stroke="#123e44" strokeWidth="2.5" />
-        <circle cx={ex} cy={ey} r="6" fill="#123e44" />
-        <text x={sx} y={sy - 12} textAnchor="middle" fontSize="12" fontWeight="600" fill="#0e1a1c" paintOrder="stroke" stroke="#f2f3ef" strokeWidth="4">
-          {shortName(origin, lang)}
-        </text>
-        <text x={ex} y={ey + 22} textAnchor="middle" fontSize="12" fontWeight="600" fill="#0e1a1c" paintOrder="stroke" stroke="#f2f3ef" strokeWidth="4">
-          {shortName(destination, lang)}
-        </text>
-        {compass}
-      </svg>
-      <figcaption className="route-caption">
-        <span className={`route-source${route.isApproximate ? ' is-approx' : ''}`} data-testid="route-source" data-source={route.source}>
-          <IconInfo />
-          {c.source[route.source]}
-        </span>
-        <br />
-        {c.routeCaption(route.totalDistanceKm.toFixed(0), compassName(verdict.meanHeadingDeg, lang))}
-        {step ? ` · ${formatTime(step.timeMs, lang)}` : ''}
-      </figcaption>
-    </figure>
+          <text x={ex} y={ey + 22} textAnchor="middle" fontSize="12" fontWeight="600" fill="#1d2126" paintOrder="stroke" stroke="#fbfcfe" strokeWidth="4">
+            {shortName(destination, lang)}
+          </text>
+          {protractor}
+        </svg>
+        <figcaption className="figure-caption">
+          <span className={`source-tag${route.isApproximate ? ' is-approx' : ''}`} data-testid="route-source" data-source={route.source}>
+            <IconInfo />
+            {c.source[route.source]}
+          </span>
+          <br />
+          {c.routeCaption(route.totalDistanceKm.toFixed(0), compassName(verdict.meanHeadingDeg, lang))}{' '}
+          {lang === 'ar'
+            ? 'السهم الأزرق اتجاه الطريق، والأصفر اتجاه الشمس، والزاوية الحمرا بينهم هي اللي بتحدد الشمس هتضرب أنهي جنب.'
+            : 'Blue is the road heading, yellow is the sun, and the red angle between them decides which side gets it.'}
+        </figcaption>
+      </figure>
+    </section>
   );
 }

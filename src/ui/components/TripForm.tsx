@@ -3,14 +3,11 @@ import type { Place } from '../../core/types/places.ts';
 import { useTripStore, roundToFiveMinutes } from '../store/trip-store.ts';
 import { COPY, type AppLanguage } from '../i18n/copy.ts';
 import { cairoParts, fromCairo, formatDay, formatTime } from '../format.ts';
-import { calculateSunPosition } from '../../core/astronomy/noaa-solar.ts';
 import { PlacePicker } from './PlacePicker.tsx';
 import { BusSilhouette, IconInfo, IconLocate, IconSwap, IconTripArrow, MicrobusSilhouette } from './Icons.tsx';
 import { locateMe } from '../geo.ts';
 
-const CAIRO = { lat: 30.0444, lng: 31.2357 };
-
-function PlaceButton({
+function PlaceLine({
   tag,
   place,
   placeholder,
@@ -30,40 +27,14 @@ function PlaceButton({
   const name = place ? (lang === 'ar' ? place.nameAr : place.nameEn) : placeholder;
   const context = place ? (lang === 'ar' ? place.contextAr : place.contextEn ?? place.contextAr) : undefined;
   return (
-    <button type="button" className="place" onClick={onOpen} aria-invalid={invalid} data-testid={testId}>
-      <span className="place-tag">{tag}</span>
-      <span className={`place-value${place ? '' : ' is-empty'}`}>{name}</span>
-      {context ? <span className="place-context">{context}</span> : null}
+    <button type="button" className="line-field" onClick={onOpen} aria-invalid={invalid} data-testid={testId}>
+      <span className="line-field-tag">{tag}</span>
+      <span className="line-field-body">
+        <span className={`line-field-value${place ? '' : ' is-empty'}`}>{name}</span>
+        {context ? <span className="line-field-context">{context}</span> : null}
+      </span>
     </button>
   );
-}
-
-/** How high the sun stands at the chosen time: nine lattice openings, lit from the horizon up. */
-function SunGauge({ departure, place, lang }: { departure: Date; place: Place | null; lang: AppLanguage }) {
-  const c = COPY[lang];
-  const at = place?.location ?? CAIRO;
-  const elevation = calculateSunPosition(at.lat, at.lng, departure).elevation;
-  const lit = elevation <= 0 ? 0 : Math.max(1, Math.min(9, Math.ceil(elevation / 10)));
-  return (
-    <div className="sun-gauge" data-testid="sun-gauge">
-      <svg width="118" height="16" viewBox="0 0 118 16" aria-hidden="true" direction="ltr">
-        {Array.from({ length: 9 }, (_, i) => {
-          const cx = 7 + i * 13;
-          return <path key={i} d={`M${cx} 1.5L${cx + 6.5} 8L${cx} 14.5L${cx - 6.5} 8Z`} fill={i < lit ? '#ffb52e' : '#d6dbd7'} />;
-        })}
-      </svg>
-      <span>{elevation <= 0 ? c.sunDown : c.sunHeight(Math.round(elevation))}</span>
-    </div>
-  );
-}
-
-function openPicker(e: React.MouseEvent<HTMLInputElement>) {
-  // Desktop browsers focus a segment of an invisible date or time input instead of opening it.
-  try {
-    e.currentTarget.showPicker?.();
-  } catch {
-    // Some browsers refuse showPicker outside a direct gesture; the native control still works.
-  }
 }
 
 export function TripForm() {
@@ -106,109 +77,81 @@ export function TripForm() {
   };
 
   const errorText = s.error === 'MISSING' ? c.errMissing : s.error === 'SAME' ? c.errSame : null;
-  const short = (name: string) => name.replace(/^موقف /, '');
 
   return (
-    <main className="form" data-testid="home-input-screen">
-      <p className="tagline">{c.tagline}</p>
-
+    <main className="trip-form" data-testid="home-input-screen">
       {s.recents.length > 0 && (
         <section className="recents" aria-label={c.recents}>
-          <h2 className="label">{c.recents}</h2>
-          <div className="chips">
+          <p className="section-label">{c.recents}</p>
+          <div className="pill-row">
             {s.recents.map((r) => (
-              <button key={`${r.origin.id}-${r.destination.id}-${r.at}`} type="button" className="chip" onClick={() => void s.applyRecent(r)} data-testid="recent-trip">
-                {short(s.lang === 'ar' ? r.origin.nameAr : r.origin.nameEn)}
-                <IconTripArrow rtl={s.lang === 'ar'} />
-                {short(s.lang === 'ar' ? r.destination.nameAr : r.destination.nameEn)}
+              <button
+                key={`${r.origin.id}-${r.destination.id}-${r.at}`}
+                type="button"
+                className="pill"
+                onClick={() => void s.applyRecent(r)}
+                data-testid="recent-trip"
+              >
+                {(s.lang === 'ar' ? r.origin.nameAr : r.origin.nameEn).replace(/^موقف /, '')}{' '}
+                <IconTripArrow rtl={s.lang === 'ar'} />{' '}
+                {(s.lang === 'ar' ? r.destination.nameAr : r.destination.nameEn).replace(/^موقف /, '')}
               </button>
             ))}
           </div>
         </section>
       )}
 
-      <section className="slab trip" aria-label={`${c.from} / ${c.to}`}>
-        <span className="trip-rail" aria-hidden="true" />
-        <div className="trip-row">
-          <span className="trip-dot" aria-hidden="true" />
-          <PlaceButton
-            tag={c.from}
-            place={s.origin}
-            placeholder={c.fromPlaceholder}
-            lang={s.lang}
-            invalid={s.error !== null && !s.origin}
-            onOpen={() => setPicker('from')}
-            testId="origin-field"
-          />
-          {s.origin?.kind !== 'gps' && (
-            <button type="button" className="locate" onClick={useMyLocation} disabled={gps === 'locating'} aria-label={c.useMyLocationLabel} data-testid="locate-btn">
-              <IconLocate />
-              {gps === 'locating' ? c.locating : c.useMyLocation}
-            </button>
-          )}
-        </div>
-        <div className="trip-divider">
-          <button
-            type="button"
-            className="swap"
-            aria-label={c.swap}
-            onClick={() => {
-              s.swap();
-              setSwapTurns((t) => t + 1);
-            }}
-            style={{ rotate: `${swapTurns * 180}deg` }}
-            data-testid="swap-btn"
-          >
-            <IconSwap />
-          </button>
-        </div>
-        <div className="trip-row">
-          <span className="trip-dot is-to" aria-hidden="true" />
-          <PlaceButton
-            tag={c.to}
-            place={s.destination}
-            placeholder={c.toPlaceholder}
-            lang={s.lang}
-            invalid={s.error === 'SAME' || (s.error !== null && !s.destination)}
-            onOpen={() => setPicker('to')}
-            testId="destination-field"
-          />
-        </div>
+      <section className="places" aria-label={`${c.from} / ${c.to}`}>
+        <PlaceLine
+          tag={c.from}
+          place={s.origin}
+          placeholder={c.fromPlaceholder}
+          lang={s.lang}
+          invalid={s.error !== null && !s.origin}
+          onOpen={() => setPicker('from')}
+          testId="origin-field"
+        />
+        <PlaceLine
+          tag={c.to}
+          place={s.destination}
+          placeholder={c.toPlaceholder}
+          lang={s.lang}
+          invalid={s.error === 'SAME' || (s.error !== null && !s.destination)}
+          onOpen={() => setPicker('to')}
+          testId="destination-field"
+        />
+        <button
+          type="button"
+          className="swap-btn"
+          aria-label={c.swap}
+          onClick={() => {
+            s.swap();
+            setSwapTurns((t) => t + 1);
+          }}
+          style={{ rotate: `${swapTurns * 180}deg` }}
+          data-testid="swap-btn"
+        >
+          <IconSwap />
+        </button>
       </section>
-      {gps === 'denied' && (
-        <p className="field-error" role="alert">
-          <IconInfo />
-          {c.gpsDenied}
-        </p>
-      )}
 
-      <section className="slab when" aria-label={c.when}>
-        <h2 className="label">{c.when}</h2>
-        <div className="when-row">
-          <label className="when-field">
-            <span className="label">{c.time}</span>
-            <span className="when-big">{formatTime(s.departure, s.lang)}</span>
+      {s.origin?.kind !== 'gps' && (
+        <button type="button" className="locate-btn" onClick={useMyLocation} disabled={gps === 'locating'} data-testid="locate-btn">
+          <IconLocate />
+          {gps === 'locating' ? c.locating : c.useMyLocation}
+        </button>
+      )}
+      {gps === 'denied' && <p className="locate-error" role="alert">{c.gpsDenied}</p>}
+
+      <section className="date-line" aria-label={c.when}>
+        <p className="section-label">{c.when}</p>
+        <div className="date-row">
+          <label className="ink-input">
+            <span className="ink-input-label">{c.date}</span>
+            <span className="ink-input-value">{formatDay(s.departure, s.lang)}</span>
             <input
-              className="overlay-input"
-              type="time"
-              value={parts.time}
-              onClick={openPicker}
-              onChange={(e) => {
-                const next = fromCairo(parts.date, e.target.value);
-                if (next) s.setDeparture(next);
-              }}
-              data-testid="time-input"
-              aria-label={c.time}
-            />
-          </label>
-          <label className="when-field">
-            <span className="label">{c.date}</span>
-            <span className="when-mid">{formatDay(s.departure, s.lang)}</span>
-            <input
-              className="overlay-input"
               type="date"
               value={parts.date}
-              onClick={openPicker}
               onChange={(e) => {
                 const next = fromCairo(e.target.value, parts.time);
                 if (next) s.setDeparture(next);
@@ -217,26 +160,37 @@ export function TripForm() {
               aria-label={c.date}
             />
           </label>
+          <label className="ink-input">
+            <span className="ink-input-label">{c.time}</span>
+            <span className="ink-input-value">{formatTime(s.departure, s.lang)}</span>
+            <input
+              type="time"
+              value={parts.time}
+              onChange={(e) => {
+                const next = fromCairo(parts.date, e.target.value);
+                if (next) s.setDeparture(next);
+              }}
+              data-testid="time-input"
+              aria-label={c.time}
+            />
+          </label>
         </div>
-        <SunGauge departure={s.departure} place={s.origin} lang={s.lang} />
-        <div className="chips chips-3">
-          <button type="button" className="chip" aria-pressed={s.isNow} onClick={s.setNow} data-testid="time-now">
+        <div className="pill-grid">
+          <button type="button" className="pill" aria-pressed={s.isNow} onClick={s.setNow} data-testid="time-now">
             {c.now}
           </button>
-          <button type="button" className="chip" aria-pressed={false} onClick={() => shiftFromNow(30)} data-testid="time-plus-30">
+          <button type="button" className="pill" aria-pressed={false} onClick={() => shiftFromNow(30)} data-testid="time-plus-30">
             {c.in30}
           </button>
-          <button type="button" className="chip" aria-pressed={false} onClick={tomorrowSameTime} data-testid="time-tomorrow">
+          <button type="button" className="pill" aria-pressed={false} onClick={tomorrowSameTime} data-testid="time-tomorrow">
             {c.tomorrow}
           </button>
         </div>
       </section>
 
       <section aria-label={c.vehicle}>
-        <h2 className="label" style={{ marginBottom: 8 }}>
-          {c.vehicle}
-        </h2>
-        <div className="vehicle" role="radiogroup" aria-label={c.vehicle}>
+        <p className="section-label">{c.vehicle}</p>
+        <div className="vehicle-choice" role="radiogroup" aria-label={c.vehicle}>
           <button
             type="button"
             role="radio"
@@ -246,8 +200,8 @@ export function TripForm() {
             data-testid="vehicle-microbus"
           >
             <MicrobusSilhouette />
-            <span className="vehicle-name">{c.microbus}</span>
-            <span className="vehicle-seats">{c.microbusSeats}</span>
+            <span className="vehicle-option-name">{c.microbus}</span>
+            <span className="vehicle-option-seats">{c.microbusSeats}</span>
           </button>
           <button
             type="button"
@@ -258,24 +212,28 @@ export function TripForm() {
             data-testid="vehicle-bus"
           >
             <BusSilhouette />
-            <span className="vehicle-name">{c.bus}</span>
-            <span className="vehicle-seats">{c.busSeats}</span>
+            <span className="vehicle-option-name">{c.bus}</span>
+            <span className="vehicle-option-seats">{c.busSeats}</span>
           </button>
         </div>
       </section>
 
       {errorText && (
-        <p className="field-error" role="alert" data-testid="form-error">
+        <p className="form-error" role="alert" data-testid="form-error">
           <IconInfo />
           {errorText}
         </p>
       )}
 
-      <div className="cta-dock">
-        <button type="button" className="cta" disabled={s.calculating} onClick={() => void s.calculate()} data-testid="calculate-btn">
-          {s.calculating ? c.ctaBusy : c.cta}
-        </button>
-      </div>
+      <button
+        type="button"
+        className="cta"
+        disabled={s.calculating}
+        onClick={() => void s.calculate()}
+        data-testid="calculate-btn"
+      >
+        {s.calculating ? c.ctaBusy : c.cta}
+      </button>
 
       {picker && (
         <PlacePicker
