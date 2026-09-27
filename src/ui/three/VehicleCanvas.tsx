@@ -7,6 +7,10 @@ import { formatTime, cairoParts, fromCairo } from '../format.ts';
 import { IconPause, IconPlay } from '../components/Icons.tsx';
 import { VehicleScene, type SunState, type ViewMode } from './VehicleScene.ts';
 import { defaultFocusIndex } from '../focus.ts';
+import { EGYPT_MICROBUS_14, loadShell } from '../../../packages/egypt-microbus/src/index.ts';
+
+/** The microbus body, cut at build time (scripts/build-microbus-shell.mts). */
+const SHELL_URL = '/models/egypt-microbus-shell.bin';
 
 export interface VehicleCanvasProps {
   vehicle: VehicleProfile;
@@ -15,6 +19,8 @@ export interface VehicleCanvasProps {
   onScrub: (i: number | null) => void;
   selectedSeatId: number | null;
   lang: AppLanguage;
+  /** Written on the card behind the microbus windshield. */
+  destinationName?: string | null;
 }
 
 function sunStateFor(step: TimelineStep): SunState {
@@ -44,11 +50,12 @@ function isLowEnd(): boolean {
   return (nav.hardwareConcurrency ?? 4) <= 4 || (nav.deviceMemory ?? 4) <= 3;
 }
 
-export default function VehicleCanvas({ vehicle, verdict, scrubIndex, onScrub, selectedSeatId, lang }: VehicleCanvasProps) {
+export default function VehicleCanvas({ vehicle, verdict, scrubIndex, onScrub, selectedSeatId, lang, destinationName }: VehicleCanvasProps) {
   const c = COPY[lang];
   const slotRef = useRef<HTMLDivElement>(null);
   const sceneRef = useRef<VehicleScene | null>(null);
   const [failed, setFailed] = useState(false);
+  const [ready, setReady] = useState(false);
   const [view, setView] = useState<ViewMode>('top');
   const [playing, setPlaying] = useState(false);
 
@@ -59,34 +66,45 @@ export default function VehicleCanvas({ vehicle, verdict, scrubIndex, onScrub, s
   useEffect(() => {
     const slot = slotRef.current;
     if (!slot) return;
-    try {
-      const probe = document.createElement('canvas');
-      if (!probe.getContext('webgl2') && !probe.getContext('webgl')) throw new Error('no webgl');
-      sceneRef.current = new VehicleScene(slot, vehicle, { lowEnd: isLowEnd(), lang });
-    } catch {
-      setFailed(true);
-    }
+    let cancelled = false;
+    setReady(false);
+    (async () => {
+      try {
+        const probe = document.createElement('canvas');
+        if (!probe.getContext('webgl2') && !probe.getContext('webgl')) throw new Error('no webgl');
+        // The finished body is a small download; cutting it on the phone would block for seconds.
+        const shell = vehicle.id === 'microbus-14' ? await loadShell(EGYPT_MICROBUS_14, SHELL_URL) : null;
+        // Let the answer paint first, then build the scene.
+        await new Promise<void>((resolve) => requestAnimationFrame(() => setTimeout(resolve, 0)));
+        if (cancelled) return;
+        sceneRef.current = new VehicleScene(slot, vehicle, { lowEnd: isLowEnd(), lang, shell, destination: destinationName ?? null });
+        setReady(true);
+      } catch {
+        if (!cancelled) setFailed(true);
+      }
+    })();
     return () => {
+      cancelled = true;
       sceneRef.current?.dispose();
       sceneRef.current = null;
     };
-  }, [vehicle, lang]);
+  }, [vehicle, lang, destinationName]);
 
   useEffect(() => {
     if (step) sceneRef.current?.setSun(sunStateFor(step));
-  }, [step]);
+  }, [step, ready]);
 
   useEffect(() => {
     sceneRef.current?.setSelectedSeat(selectedSeatId);
-  }, [selectedSeatId, vehicle]);
+  }, [selectedSeatId, vehicle, ready]);
 
   useEffect(() => {
     sceneRef.current?.setBestSeats(verdict.status === 'NIGHT' || verdict.status === 'DOES_NOT_MATTER' ? [] : verdict.bestSeatIds);
-  }, [verdict, vehicle]);
+  }, [verdict, vehicle, ready]);
 
   useEffect(() => {
     sceneRef.current?.setView(view);
-  }, [view, vehicle]);
+  }, [view, vehicle, ready]);
 
   // Play the trip: sweep the timeline in about 12 seconds.
   useEffect(() => {

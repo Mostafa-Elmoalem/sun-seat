@@ -1,7 +1,9 @@
 import * as THREE from 'three';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 import { RoundedBoxGeometry } from 'three/examples/jsm/geometries/RoundedBoxGeometry.js';
+import { RoomEnvironment } from 'three/examples/jsm/environments/RoomEnvironment.js';
 import { SEAT_SHAPE } from '../../core/exposure/seat-rays.ts';
+import { buildMicrobus, EGYPT_MICROBUS_14, type MicrobusModel, type ShellParts } from '../../../packages/egypt-microbus/src/index.ts';
 import type { SideWindow, EndWindow, VehicleProfile, VehicleSeat } from '../../core/types/vehicle.ts';
 
 /**
@@ -12,6 +14,9 @@ import type { SideWindow, EndWindow, VehicleProfile, VehicleSeat } from '../../c
  *
  * Frames: vehicle profile (x right, y towards rear, z up) maps to three.js as
  * X = x, Y = z, Z = y - length/2 (the nose points at -Z).
+ *
+ * The microbus is the egypt-microbus package model (the same spec the engine reads);
+ * the coach is still drawn here from its profile.
  */
 
 export type ViewMode = 'outside' | 'top' | 'seat';
@@ -176,7 +181,14 @@ function textSprite(text: string, opts: { size?: number; color?: string; bg?: st
 export interface SceneOptions {
   lowEnd: boolean;
   lang: 'ar' | 'en';
+  /** Precomputed microbus shell (see loadShell); without it the shell is cut on the device. */
+  shell?: ShellParts | null;
+  /** Written on the card behind the windshield. */
+  destination?: string | null;
 }
+
+/** The profile id whose geometry comes from the egypt-microbus package. */
+const PACKAGE_MICROBUS_ID = 'microbus-14';
 
 export class VehicleScene {
   readonly renderer: THREE.WebGLRenderer;
@@ -195,6 +207,10 @@ export class VehicleScene {
   private sunPath: THREE.Line;
   private northMarker: THREE.Group;
   private roofParts: THREE.Mesh[] = [];
+  /** The package microbus, when this vehicle is the 14-seat microbus. */
+  private microbus: MicrobusModel | null = null;
+  private envMap: THREE.Texture | null = null;
+  private occupiedHidden: number | null = null;
   private seatLabels: THREE.Sprite[] = [];
   private passengers!: THREE.InstancedMesh[];
   private youGroup = new THREE.Group();
@@ -273,8 +289,22 @@ export class VehicleScene {
     this.scene.add(this.bestRings);
 
     this.buildGround();
-    this.buildBody();
-    this.buildCabin();
+    if (vehicle.id === PACKAGE_MICROBUS_ID) {
+      // Reflections on paint, chrome and glass only; the cabin materials never take them.
+      if (!opts.lowEnd) {
+        const pmrem = new THREE.PMREMGenerator(this.renderer);
+        this.envMap = pmrem.fromScene(new RoomEnvironment(), 0.04).texture;
+        pmrem.dispose();
+      }
+      this.microbus = buildMicrobus(EGYPT_MICROBUS_14, { shell: opts.shell ?? null, envMap: this.envMap, destination: opts.destination ?? null });
+      this.scene.add(this.microbus.group);
+      this.microbus.setOccupied(0, true);
+    } else {
+      this.buildBody();
+      this.buildCabin();
+    }
+    this.buildYouMarker();
+    this.buildSeatLabels();
 
     this.resize();
     if (typeof ResizeObserver !== 'undefined') {
@@ -608,7 +638,13 @@ export class VehicleScene {
     dash.receiveShadow = true;
     this.scene.add(dash);
 
-    // "You" marker: an ink-blue passenger at the selected seat, shown instead of the gray one.
+  }
+
+  /** "You": an accent-colored passenger at the selected seat, shown instead of the gray one. */
+  private buildYouMarker(): void {
+    const torsoGeo = this.track(new THREE.CapsuleGeometry(0.16, 0.3, 4, 10));
+    const headGeo = this.track(new THREE.SphereGeometry(0.105, 16, 12));
+    const thighGeo = this.track(new THREE.CapsuleGeometry(0.075, 0.3, 4, 8));
     const youMat = this.mat(COLORS.you, { roughness: 0.7 });
     const yTorso = new THREE.Mesh(torsoGeo, youMat);
     const yHead = new THREE.Mesh(headGeo, youMat);
@@ -628,8 +664,11 @@ export class VehicleScene {
     yThighB.rotation.x = Math.PI / 2;
     this.youGroup.visible = false;
     this.scene.add(this.youGroup);
+  }
 
-    // Seat numbers, visible from above.
+  /** Seat numbers on the floor in front of each seat, visible from above. */
+  private buildSeatLabels(): void {
+    const v = this.vehicle;
     for (const s of v.seats) {
       const label = textSprite(String(s.id), { size: 56, color: '#1b2f7c', bg: 'rgba(251,252,254,0.92)' });
       // On the floor just in front of the seat, so the passenger and the sun patch stay visible from above.
@@ -749,6 +788,12 @@ export class VehicleScene {
   }
 
   private applyPassengerVisibility(selected: VehicleSeat | null): void {
+    if (this.microbus) {
+      if (this.occupiedHidden !== null) this.microbus.setOccupied(this.occupiedHidden, true);
+      this.occupiedHidden = selected ? selected.id : null;
+      if (selected) this.microbus.setOccupied(selected.id, false);
+      return;
+    }
     const idx = selected ? this.vehicle.seats.findIndex((s) => s.id === selected.id) + 1 : -1;
     const [torsos, heads, thighs] = this.passengers as [THREE.InstancedMesh, THREE.InstancedMesh, THREE.InstancedMesh];
     const hidden = new THREE.Matrix4().makeScale(0, 0, 0);
@@ -787,6 +832,7 @@ export class VehicleScene {
     const seat = this.vehicle.seats.find((s) => s.id === this.selectedSeatId) ?? this.vehicle.seats[0]!;
 
     // Roof: visible from outside and from the seat; invisible (still casting shadow) from above.
+    this.microbus?.setCutaway(view === 'top');
     for (const r of this.roofParts) {
       const m = r.material as THREE.MeshStandardMaterial;
       m.colorWrite = view !== 'top';
@@ -872,6 +918,8 @@ export class VehicleScene {
       if (mesh.geometry) mesh.geometry.dispose();
     });
     this.disposables.forEach((d) => d.dispose());
+    this.microbus?.dispose();
+    this.envMap?.dispose();
     this.sunLight.shadow.map?.dispose();
     this.renderer.dispose();
     this.renderer.forceContextLoss();
