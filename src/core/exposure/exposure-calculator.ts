@@ -6,6 +6,7 @@ import type {
   TimelineStep,
   TripSensitivityResult,
   ConfidenceLevel,
+  EndAdvice,
   Side,
   SunDirection,
   SunSpan
@@ -17,6 +18,19 @@ import { classifyVerdict } from './honest-rules.ts';
 
 /** At most this many simulation steps per trip; long trips use 2+ minute steps. */
 const MAX_STEPS = 300;
+
+/**
+ * Share of the body in direct sun (after the glass) from which a rider notices it:
+ * about one shoulder, or the lap through glass at a slant.
+ */
+export const MILD_SUN = 0.08;
+/** From here it is proper sun: the face and a shoulder, the back and a shoulder, or more. */
+export const STRONG_SUN = 0.25;
+/**
+ * In the seat ranking, each minute of noticeable sun counts this much on top of its dose,
+ * so a seat that stays lightly lit for a long time never beats a seat that stays in shade.
+ */
+const DURATION_WEIGHT = 0.25;
 
 interface Point {
   lat: number;
@@ -109,6 +123,8 @@ interface PassResult {
   tripMinutes: number;
   timeline: TimelineStep[];
   seatSunMinutes: Map<number, number>;
+  seatStrongMinutes: Map<number, number>;
+  seatMildMinutes: Map<number, number>;
   daylightMinutes: number;
   leftSunMinutes: number;
   rightSunMinutes: number;
@@ -129,6 +145,8 @@ function runPass(
   const stepMin = Math.max(1, Math.ceil(tripMinutes / MAX_STEPS));
   const cabin = getCabin(vehicle);
   const seatSunMinutes = new Map<number, number>(vehicle.seats.map((s) => [s.id, 0]));
+  const seatStrongMinutes = new Map<number, number>(vehicle.seats.map((s) => [s.id, 0]));
+  const seatMildMinutes = new Map<number, number>(vehicle.seats.map((s) => [s.id, 0]));
   const timeline: TimelineStep[] = [];
   let daylightMinutes = 0;
 
@@ -152,6 +170,8 @@ function runPass(
       for (const seat of vehicle.seats) {
         const lit = seatSunlight(cabin, seat.id, d, sun.elevation);
         if (lit > 0) seatSunMinutes.set(seat.id, seatSunMinutes.get(seat.id)! + lit * weight);
+        if (lit >= STRONG_SUN) seatStrongMinutes.set(seat.id, seatStrongMinutes.get(seat.id)! + weight);
+        else if (lit >= MILD_SUN) seatMildMinutes.set(seat.id, seatMildMinutes.get(seat.id)! + weight);
       }
     }
 
@@ -182,6 +202,8 @@ function runPass(
     tripMinutes,
     timeline,
     seatSunMinutes,
+    seatStrongMinutes,
+    seatMildMinutes,
     daylightMinutes,
     leftSunMinutes: windowAvg('left'),
     rightSunMinutes: windowAvg('right')
@@ -247,6 +269,56 @@ export function analyzeTripSensitivity(
   return { confidence, verdictStable: agree >= 3, scenarios };
 }
 
+/** Ranking score per seat: the sun dose plus a share of every minute the sun is noticeable. */
+function seatScores(vehicle: VehicleProfile, pass: PassResult): Map<number, number> {
+  return new Map(
+    vehicle.seats.map((s) => [
+      s.id,
+      pass.seatSunMinutes.get(s.id)! + DURATION_WEIGHT * (pass.seatStrongMinutes.get(s.id)! + pass.seatMildMinutes.get(s.id)!)
+    ])
+  );
+}
+
+/**
+ * Seats from best to worst. The score is rounded to whole minutes once, then compared
+ * exactly, so the order is transitive; ties go to window seats, then the recommended side,
+ * then the front, then the seat number.
+ */
+export function rankSeats(vehicle: VehicleProfile, score: Map<number, number>, recommendedSide: Side | 'either'): number[] {
+  const key = (s: VehicleProfile['seats'][number]) => [
+    Math.round(score.get(s.id) ?? 0),
+    s.isWindow ? 0 : 1,
+    s.side === recommendedSide ? 0 : 1,
+    s.row,
+    s.id
+  ];
+  return [...vehicle.seats]
+    .map((s) => ({ id: s.id, k: key(s) }))
+    .sort((a, b) => {
+      for (let i = 0; i < a.k.length; i++) if (a.k[i] !== b.k[i]) return a.k[i]! - b.k[i]!;
+      return 0;
+    })
+    .map((s) => s.id);
+}
+
+/** Does one end of the vehicle take clearly more sun than the rows in between? */
+export function endAdviceFor(vehicle: VehicleProfile, score: Map<number, number>, tripMinutes: number): EndAdvice {
+  const rows = vehicle.seats.map((s) => s.row);
+  const first = Math.min(...rows);
+  const last = Math.max(...rows);
+  const avg = (keep: (row: number) => boolean) => {
+    const list = vehicle.seats.filter((s) => keep(s.row)).map((s) => score.get(s.id) ?? 0);
+    return list.length ? list.reduce((a, b) => a + b, 0) / list.length : 0;
+  };
+  const middle = avg((r) => r !== first && r !== last);
+  const back = avg((r) => r === last) - middle;
+  const front = avg((r) => r === first) - middle;
+  const threshold = Math.max(5, 0.1 * tripMinutes);
+  if (back >= threshold && back >= front) return 'avoid-back';
+  if (front >= threshold) return 'avoid-front';
+  return null;
+}
+
 export function calculateTripExposure(
   route: ProcessedRoute,
   departure: Date,
@@ -264,23 +336,24 @@ export function calculateTripExposure(
 
   const seatsExposure: SeatExposure[] = vehicle.seats.map((s) => {
     const sunMinutes = Math.round(seatSunMinutes.get(s.id)!);
+    const strongMinutes = Math.round(base.seatStrongMinutes.get(s.id)!);
+    const mildMinutes = Math.round(base.seatMildMinutes.get(s.id)!);
     return {
       seatId: s.id,
       sunMinutes,
-      shadePercentage: Math.round(100 * Math.max(0, 1 - sunMinutes / tripMinutes)),
+      strongMinutes,
+      mildMinutes,
+      shadePercentage: Math.round(100 * Math.max(0, 1 - (strongMinutes + mildMinutes) / tripMinutes)),
       side: s.side,
       isWindow: s.isWindow
     };
   });
 
-  const rowOf = new Map(vehicle.seats.map((s) => [s.id, s.row]));
-  const ranked = [...seatsExposure].sort((a, b) => {
-    if (Math.abs(a.sunMinutes - b.sunMinutes) > 1) return a.sunMinutes - b.sunMinutes;
-    if (a.isWindow !== b.isWindow) return a.isWindow ? -1 : 1;
-    if (a.side === decision.recommendedSide && b.side !== decision.recommendedSide) return -1;
-    if (b.side === decision.recommendedSide && a.side !== decision.recommendedSide) return 1;
-    return (rowOf.get(a.seatId) ?? 0) - (rowOf.get(b.seatId) ?? 0);
-  });
+  const score = seatScores(vehicle, base);
+  const ranked = rankSeats(vehicle, score, decision.recommendedSide);
+  const spread = Math.max(...score.values()) - Math.min(...score.values());
+  const seatAdvice =
+    decision.status === 'CLEAR' || decision.status === 'LEANING' || (decision.status !== 'NIGHT' && spread >= Math.max(3, 0.08 * tripMinutes));
 
   const sensitivity =
     decision.status === 'NIGHT'
@@ -293,8 +366,10 @@ export function calculateTripExposure(
   return {
     status: decision.status,
     recommendedSide: decision.recommendedSide,
-    bestSeatIds: ranked.slice(0, 3).map((s) => s.seatId),
-    worstSeatIds: ranked.slice(-3).reverse().map((s) => s.seatId),
+    endAdvice: decision.status === 'NIGHT' ? null : endAdviceFor(vehicle, score, tripMinutes),
+    seatAdvice,
+    bestSeatIds: ranked.slice(0, 3),
+    worstSeatIds: ranked.slice(-3).reverse(),
     sides: {
       leftSunMinutes: Math.round(base.leftSunMinutes),
       rightSunMinutes: Math.round(base.rightSunMinutes),

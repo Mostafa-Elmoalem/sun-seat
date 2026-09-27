@@ -3,9 +3,10 @@ import {
   calculateTripExposure,
   calculateSunVector,
   circularMeanDeg,
-  seatSunlightAtStep
+  seatSunlightAtStep,
+  STRONG_SUN
 } from '../../src/core/exposure/exposure-calculator.ts';
-import { buildCabinModel, pointSunlight, toVehicleFrame } from '../../src/core/exposure/seat-rays.ts';
+import { buildCabinModel, litBodyParts, pointSunlight, seatSunlight, toVehicleFrame } from '../../src/core/exposure/seat-rays.ts';
 import { cairoTimeToUtc } from '../../src/core/astronomy/timezone.ts';
 import { MICROBUS_14, BUS_49 } from '../../src/data/vehicles.ts';
 import type { ProcessedRoute } from '../../src/core/types/routes.ts';
@@ -111,16 +112,19 @@ describe('seat level physics', () => {
     const cabin = buildCabinModel(MICROBUS_14);
     const seat = MICROBUS_14.seats[2]!;
     const p = { x: seat.position.x, y: seat.position.y, z: seat.position.z + 0.5 };
-    expect(pointSunlight(cabin, p, toVehicleFrame(0, 0, 1), seat.id)).toBe(0);
+    expect(pointSunlight(cabin, p, toVehicleFrame(0, 0, 1))).toBe(0);
   });
 
   it('a low side ray through the adjacent window reaches the window passenger', () => {
     const cabin = buildCabinModel(MICROBUS_14);
     const seat = MICROBUS_14.seats.find((s) => s.id === 3)!; // left window, row 1
-    const p = { x: seat.position.x, y: seat.position.y - 0.02, z: seat.position.z + 0.45 };
+    // The window-side shoulder, just outside the torso.
+    const p = { x: seat.position.x - 0.21, y: seat.position.y - 0.02, z: seat.position.z + 0.45 };
     const { ux, uy, uz } = calculateSunVector(270, 15, 0);
     const d = toVehicleFrame(ux, uy, uz);
-    expect(pointSunlight(cabin, p, d, seat.id)).toBeGreaterThan(0.5);
+    expect(pointSunlight(cabin, p, d)).toBeGreaterThan(0.5);
+    // The same ray from the far shoulder has to cross the passenger's own body.
+    expect(pointSunlight(cabin, { ...p, x: seat.position.x + 0.21 }, d)).toBe(0);
   });
 
   it('instant per-seat sunlight matches the side the sun is on', () => {
@@ -129,6 +133,95 @@ describe('seat level physics', () => {
     const lit = seatSunlightAtStep(MICROBUS_14, step);
     expect(step.sunSide).toBe('left');
     expect(lit.get(3)!).toBeGreaterThan(lit.get(5)!);
+  });
+});
+
+describe('sun from behind and the back bench (owner field reports, September 2026)', () => {
+  // Winter noon, heading north: the sun sits straight behind the vehicle at about 37 degrees.
+  const winterNoonNorth = () => calculateTripExposure(straightRoute(0, 60), cairoTimeToUtc(2026, 12, 21, 12, 0), MICROBUS_14);
+
+  it('lights the backs of the back bench through the rear glass for most of the trip', () => {
+    const v = winterNoonNorth();
+    const byId = new Map(v.seatsExposure.map((s) => [s.seatId, s]));
+    for (const id of [12, 13, 14]) {
+      const s = byId.get(id)!;
+      expect(s.strongMinutes + s.mildMinutes).toBeGreaterThan(0.8 * v.tripMinutes);
+    }
+    // The benches in front sit behind people and headrests: at most a little sun.
+    for (const id of [4, 7, 10]) expect(byId.get(id)!.sunMinutes).toBeLessThan(3);
+  });
+
+  it('says so even though neither side is better: avoid the back bench', () => {
+    const v = winterNoonNorth();
+    expect(v.recommendedSide).toBe('either');
+    expect(v.endAdvice).toBe('avoid-back');
+    expect(v.seatAdvice).toBe(true);
+    for (const id of v.bestSeatIds) expect([12, 13, 14]).not.toContain(id);
+    expect(v.worstSeatIds.every((id) => [12, 13, 14].includes(id))).toBe(true);
+  });
+
+  it('it is the upper back and shoulders that take it, the short backrest covers only the lower back', () => {
+    const cabin = buildCabinModel(MICROBUS_14);
+    const { ux, uy, uz } = calculateSunVector(180, 30, 0);
+    const parts = litBodyParts(cabin, 13, toVehicleFrame(ux, uy, uz), 30);
+    expect(parts).toContain('upperBack');
+    expect(parts).not.toContain('face');
+    expect(seatSunlight(cabin, 13, toVehicleFrame(ux, uy, uz), 30)).toBeGreaterThanOrEqual(STRONG_SUN);
+  });
+
+  it('a commuter seat with a tall backrest and headrest keeps the back in shade', () => {
+    const cabin = buildCabinModel(MICROBUS_14);
+    const { ux, uy, uz } = calculateSunVector(180, 30, 0);
+    expect(litBodyParts(cabin, 7, toVehicleFrame(ux, uy, uz), 30)).not.toContain('upperBack');
+  });
+});
+
+describe('graded sun', () => {
+  it('a sun slightly off the nose still reaches the window seats, as light sun', () => {
+    // Heading 100 degrees at 7:30 in September: the low sun is ahead and a little to the door side.
+    const v = calculateTripExposure(straightRoute(100, 40), sept(7, 30), MICROBUS_14);
+    const mild = v.seatsExposure.reduce((a, s) => a + s.mildMinutes, 0);
+    expect(mild).toBeGreaterThan(0);
+  });
+
+  it('strong and light minutes never add up to more than the trip', () => {
+    const v = calculateTripExposure(straightRoute(0, 90), sept(15), MICROBUS_14);
+    for (const s of v.seatsExposure) expect(s.strongMinutes + s.mildMinutes).toBeLessThanOrEqual(v.tripMinutes);
+  });
+
+  it('the front row keeps its knees under the dashboard when a summer sun stands almost overhead', () => {
+    const v = calculateTripExposure(straightRoute(0, 60), cairoTimeToUtc(2026, 6, 21, 12, 30), MICROBUS_14);
+    const byId = new Map(v.seatsExposure.map((s) => [s.seatId, s]));
+    expect(byId.get(1)!.strongMinutes).toBe(0);
+    expect(byId.get(2)!.strongMinutes).toBe(0);
+  });
+});
+
+describe('seat ranking', () => {
+  const score = (s: { sunMinutes: number; strongMinutes: number; mildMinutes: number }) => s.sunMinutes + 0.25 * (s.strongMinutes + s.mildMinutes);
+
+  // Cases the old pairwise "within one minute" comparison got wrong.
+  const cases: [string, number, number, number, number][] = [
+    ['June, heading 120, 10:00', 120, 6, 10, 40],
+    ['January, heading 150, 9:00', 150, 1, 9, 40],
+    ['December, heading 150, 6:00', 150, 12, 6, 40]
+  ];
+  for (const [label, bearing, month, hour, minutes] of cases) {
+    it(`never ranks a sunnier seat above a shadier one (${label})`, () => {
+      const v = calculateTripExposure(straightRoute(bearing, minutes), cairoTimeToUtc(2026, month, 15, hour, 0), MICROBUS_14);
+      const byId = new Map(v.seatsExposure.map((s) => [s.seatId, s]));
+      const worstBest = Math.max(...v.bestSeatIds.map((id) => score(byId.get(id)!)));
+      for (const s of v.seatsExposure) {
+        if (!v.bestSeatIds.includes(s.seatId)) expect(score(s)).toBeGreaterThan(worstBest - 1.01);
+      }
+    });
+  }
+
+  it('the order is a strict total order (sorting twice gives the same result)', () => {
+    const v = calculateTripExposure(straightRoute(40, 120), sept(9), MICROBUS_14);
+    const again = calculateTripExposure(straightRoute(40, 120), sept(9), MICROBUS_14);
+    expect(again.bestSeatIds).toEqual(v.bestSeatIds);
+    expect(again.worstSeatIds).toEqual(v.worstSeatIds);
   });
 });
 

@@ -137,9 +137,9 @@ export function buildCabin(
 
   // Dashboard, instrument hood, steering wheel and gear lever.
   const d = spec.driver;
-  const dashTop = 1.18;
-  add(rbox(2 * inner - 0.02, 0.22, 0.3, 0.05, 3), m.dash, { x: 0, y: 0.6, z: dashTop - 0.11 });
-  add(rbox(0.4, 0.08, 0.16, 0.03), m.dash, { x: d.x, y: 0.67, z: dashTop + 0.03 });
+  const { yStart: dashY0, yEnd: dashY1, zTop: dashTop } = spec.dashboard;
+  add(rbox(2 * inner - 0.02, 0.22, dashY1 - dashY0, 0.05, 3), m.dash, { x: 0, y: (dashY0 + dashY1) / 2, z: dashTop - 0.11 });
+  add(rbox(0.4, 0.08, 0.16, 0.03), m.dash, { x: d.x, y: dashY1 - 0.08, z: dashTop + 0.03 });
   const wheel = new THREE.Group();
   at(wheel, { x: d.x, y: d.y - 0.3, z: d.z + 0.38 });
   wheel.rotation.x = THREE.MathUtils.degToRad(-55);
@@ -173,8 +173,17 @@ export function buildCabin(
   ];
   const S = SEAT_SHAPE;
   const cushionGeo = track(rbox(S.cushion.width, S.cushion.height, S.cushion.depth, 0.035, 3));
-  const backGeo = track(rbox(S.back.width, S.back.height, S.back.y1 - S.back.y0, 0.035, 3));
-  const jumpBackGeo = track(rbox(S.jumpBack.width, S.jumpBack.height, S.back.y1 - S.back.y0, 0.03, 2));
+  // Backrests differ by seat (commuter, jump seat, the short back bench): one geometry per size.
+  const backGeos = new Map<string, THREE.BufferGeometry>();
+  const backGeo = (width: number, height: number) => {
+    const key = `${width}:${height}`;
+    let geo = backGeos.get(key);
+    if (!geo) {
+      geo = track(rbox(width, height, S.back.y1 - S.back.y0, 0.035, 3));
+      backGeos.set(key, geo);
+    }
+    return geo;
+  };
   const headGeo = track(rbox(S.headrest.width, S.headrest.z1 - S.headrest.z0, S.headrest.y1 - S.headrest.y0, 0.04, 3));
   const railGeo = track(new THREE.CylinderGeometry(S.rail.radius, S.rail.radius, S.rail.length, 10));
   railGeo.rotateZ(Math.PI / 2);
@@ -196,18 +205,17 @@ export function buildCabin(
     };
     part(cushionGeo, m.seat, 0, 0, -S.cushion.height / 2);
     const backY = (S.back.y0 + S.back.y1) / 2;
-    if (jump) {
-      part(jumpBackGeo, m.seat, 0, backY, S.jumpBack.height / 2);
-      part(hingeGeo, m.chrome, 0, -0.12, -S.cushion.height - 0.02);
-    } else {
-      part(backGeo, m.seat, 0, backY, S.back.height / 2);
+    const backHeight = seatSpec?.backHeight ?? S.back.height;
+    part(backGeo(jump ? S.jumpBack.width : S.back.width, backHeight), m.seat, 0, backY, backHeight / 2);
+    if (jump) part(hingeGeo, m.chrome, 0, -0.12, -S.cushion.height - 0.02);
+    if (seatSpec?.hasHeadrest ?? true) {
       part(headGeo, m.headrest, 0, (S.headrest.y0 + S.headrest.y1) / 2, (S.headrest.z0 + S.headrest.z1) / 2);
     }
     if (seatSpec?.hasRail) part(railGeo, m.chrome, 0, S.rail.y, S.rail.z);
     // Pedestal down to the floor (the front row sits on the engine platform instead).
     const pedestalH = p.z - S.cushion.height - floorZ;
     if (seatSpec && seatSpec.row > 0 && pedestalH > 0.05) {
-      part(new THREE.BoxGeometry(S.cushion.width - 0.08, pedestalH, S.cushion.depth - 0.12), m.dash, 0, 0, -S.cushion.height - pedestalH / 2);
+      part(track(new THREE.BoxGeometry(S.cushion.width - 0.08, pedestalH, S.cushion.depth - 0.12)), m.dash, 0, 0, -S.cushion.height - pedestalH / 2);
     }
     seats.set(id, g);
     cabin.add(g);

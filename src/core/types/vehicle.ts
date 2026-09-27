@@ -27,6 +27,10 @@ export interface VehicleSeat {
   isWindow: boolean;
   /** Folding jump seat next to the sliding door ("الكرسي القلاب"). */
   isJump?: boolean;
+  /** Top of the backrest above the cushion top. Defaults: 0.6 m, or 0.44 m for a jump seat. */
+  backHeight?: number;
+  /** Defaults to true, except on jump seats. */
+  hasHeadrest?: boolean;
   position: SeatPosition;
 }
 
@@ -48,6 +52,8 @@ export interface EndWindow {
   xEnd: number;
   zBottom: number;
   zTop: number;
+  /** A raked windshield: y of the glass at its bottom and top edges (the glass is the plane through both). */
+  rake?: { yAtBottom: number; yAtTop: number };
 }
 
 export type VehicleWindow = SideWindow | EndWindow;
@@ -64,6 +70,8 @@ export interface VehicleDimensions {
   frontWallY: number;
   /** y of the rear glass plane. */
   rearWallY: number;
+  /** Side wall thickness; defaults to 6 cm. */
+  wallThicknessM?: number;
 }
 
 export interface VehicleProfile {
@@ -79,14 +87,20 @@ export interface VehicleProfile {
   doorSide: Side;
   dimensions: VehicleDimensions;
   driver: SeatPosition;
+  /** A dashboard across the cabin in front of the front row, if it matters for shade. */
+  dashboard?: { yStart: number; yEnd: number; zTop: number };
   windows: VehicleWindow[];
   seats: VehicleSeat[];
 }
 
 export interface SeatExposure {
   seatId: number;
-  /** Minutes of direct sun on the passenger, weighted by how much of the body is lit. */
+  /** Minutes of direct sun on the passenger, weighted by how much of the body is lit (the dose). */
   sunMinutes: number;
+  /** Minutes of proper sun: a large share of the body lit (see STRONG_SUN). */
+  strongMinutes: number;
+  /** Minutes of light sun: noticeable, but only a small part of the body or through glass at a slant. */
+  mildMinutes: number;
   /** Share of the trip in shade, 0 to 100. */
   shadePercentage: number;
   side: SeatSide;
@@ -142,6 +156,12 @@ export interface TripSensitivityResult {
  */
 export type VerdictStatus = 'CLEAR' | 'LEANING' | 'TIE' | 'DOES_NOT_MATTER' | 'NIGHT';
 
+/**
+ * Advice along the vehicle, independent of the side: the back bench takes the sun through
+ * the rear glass when it is behind, the front row through the windshield when it is ahead.
+ */
+export type EndAdvice = 'avoid-back' | 'avoid-front' | null;
+
 export interface SunSpan {
   side: SunDirection;
   startMinute: number;
@@ -151,6 +171,9 @@ export interface SunSpan {
 export interface TripExposureVerdict {
   status: VerdictStatus;
   recommendedSide: Side | 'either';
+  endAdvice: EndAdvice;
+  /** True when seats differ enough that naming the best ones is useful, whatever the side verdict. */
+  seatAdvice: boolean;
   bestSeatIds: number[];
   worstSeatIds: number[];
   sides: SideSummary;

@@ -19,7 +19,10 @@
  *    by elenaisakova248 (Sketchfab, CC BY 4.0), a hand-made H100 with correct proportions, then
  *    lengthened by 0.51 m between the front doors and the rear axle to the 4.98 m body.
  *  - Seat layout: confirmed by the product owner (2 up front, 3 benches of 3 with a folding
- *    jump seat on the door side, a back bench of 3).
+ *    jump seat on the door side, a back bench of 3). The back bench sits against the rear
+ *    door and its short backrest ends about at the bottom edge of the rear glass, with no
+ *    headrests, so riders there lean their shoulders on the door (owner, September 2026).
+ *    The three benches in front of it are spaced evenly between the front row and the back bench.
  */
 
 export type Side = 'left' | 'right';
@@ -68,6 +71,9 @@ export interface SeatSpec {
   isJump: boolean;
   /** A grab rail across the top back of this seat, for the row behind. */
   hasRail: boolean;
+  /** Height of the top of the backrest above the cushion top. */
+  backHeight: number;
+  hasHeadrest: boolean;
   /** x, y: center of the seat; z: height of the TOP of the cushion. */
   position: Vec3;
 }
@@ -115,6 +121,8 @@ export interface MicrobusSpec {
     sliding: { side: Side; yStart: number; yEnd: number };
   };
   driver: Vec3;
+  /** The dashboard across the cabin: it shades the front row's knees and laps. */
+  dashboard: { yStart: number; yEnd: number; zTop: number };
   windows: WindowSpec[];
   seats: SeatSpec[];
 }
@@ -136,26 +144,35 @@ const L = 4.98;
 const W = 1.7;
 const CUSHION = 0.96;
 const FRONT_CUSHION = 1.0;
-const ROW_Y = [0.95, 1.8, 2.6, 3.4, 4.25];
 const BELT = 1.14;
 const GLASS_TOP = 1.78;
+const REAR_WALL_Y = 4.93;
+const REAR_GLASS_BOTTOM = 1.18;
+/** The back bench leans on the rear door: its backrest ends 5 cm short of the door plane (door trim). */
+const BACK_BENCH_Y = REAR_WALL_Y - SEAT_SHAPE.back.y1 - 0.05;
+/** Front row over the engine, then three benches 0.88 m apart up to the back bench. */
+const ROW_Y = [0.95, ...[3, 2, 1].map((k) => Number((BACK_BENCH_Y - k * 0.88).toFixed(3))), BACK_BENCH_Y];
+const COMMUTER = { backHeight: SEAT_SHAPE.back.height, hasHeadrest: true } as const;
+const JUMP = { backHeight: SEAT_SHAPE.jumpBack.height, hasHeadrest: false } as const;
+/** The back bench backrest ends about at the bottom edge of the rear glass. */
+const BENCH = { backHeight: Number((REAR_GLASS_BOTTOM + 0.03 - CUSHION).toFixed(3)), hasHeadrest: false } as const;
 
 function passengerSeats(): SeatSpec[] {
   const seats: SeatSpec[] = [
-    { id: 1, row: 0, col: 1, side: 'middle', isWindow: false, isJump: false, hasRail: true, position: { x: 0, y: ROW_Y[0]!, z: FRONT_CUSHION } },
-    { id: 2, row: 0, col: 2, side: 'right', isWindow: true, isJump: false, hasRail: true, position: { x: 0.46, y: ROW_Y[0]!, z: FRONT_CUSHION } }
+    { id: 1, row: 0, col: 1, side: 'middle', isWindow: false, isJump: false, hasRail: true, ...COMMUTER, position: { x: 0, y: ROW_Y[0]!, z: FRONT_CUSHION } },
+    { id: 2, row: 0, col: 2, side: 'right', isWindow: true, isJump: false, hasRail: true, ...COMMUTER, position: { x: 0.46, y: ROW_Y[0]!, z: FRONT_CUSHION } }
   ];
   let id = 3;
   for (let row = 1; row <= 3; row++) {
     const y = ROW_Y[row]!;
-    seats.push({ id: id++, row, col: 0, side: 'left', isWindow: true, isJump: false, hasRail: true, position: { x: -0.52, y, z: CUSHION } });
-    seats.push({ id: id++, row, col: 1, side: 'middle', isWindow: false, isJump: false, hasRail: true, position: { x: -0.08, y, z: CUSHION } });
-    seats.push({ id: id++, row, col: 2, side: 'right', isWindow: true, isJump: true, hasRail: false, position: { x: 0.5, y, z: CUSHION } });
+    seats.push({ id: id++, row, col: 0, side: 'left', isWindow: true, isJump: false, hasRail: true, ...COMMUTER, position: { x: -0.52, y, z: CUSHION } });
+    seats.push({ id: id++, row, col: 1, side: 'middle', isWindow: false, isJump: false, hasRail: true, ...COMMUTER, position: { x: -0.08, y, z: CUSHION } });
+    seats.push({ id: id++, row, col: 2, side: 'right', isWindow: true, isJump: true, hasRail: false, ...JUMP, position: { x: 0.5, y, z: CUSHION } });
   }
   const back = ROW_Y[4]!;
-  seats.push({ id: id++, row: 4, col: 0, side: 'left', isWindow: true, isJump: false, hasRail: false, position: { x: -0.5, y: back, z: CUSHION } });
-  seats.push({ id: id++, row: 4, col: 1, side: 'middle', isWindow: false, isJump: false, hasRail: false, position: { x: 0, y: back, z: CUSHION } });
-  seats.push({ id: id++, row: 4, col: 2, side: 'right', isWindow: true, isJump: false, hasRail: false, position: { x: 0.5, y: back, z: CUSHION } });
+  seats.push({ id: id++, row: 4, col: 0, side: 'left', isWindow: true, isJump: false, hasRail: false, ...BENCH, position: { x: -0.5, y: back, z: CUSHION } });
+  seats.push({ id: id++, row: 4, col: 1, side: 'middle', isWindow: false, isJump: false, hasRail: false, ...BENCH, position: { x: 0, y: back, z: CUSHION } });
+  seats.push({ id: id++, row: 4, col: 2, side: 'right', isWindow: true, isJump: false, hasRail: false, ...BENCH, position: { x: 0.5, y: back, z: CUSHION } });
   return seats;
 }
 
@@ -172,7 +189,7 @@ export const EGYPT_MICROBUS_14: MicrobusSpec = {
     floorZ: 0.55,
     roofInnerZ: 1.86,
     frontWallY: 0.45,
-    rearWallY: 4.93
+    rearWallY: REAR_WALL_Y
   },
   body: {
     sideProfile: [
@@ -218,9 +235,10 @@ export const EGYPT_MICROBUS_14: MicrobusSpec = {
     sliding: { side: 'right', yStart: 1.37, yEnd: 2.38 }
   },
   driver: { x: -0.45, y: ROW_Y[0]!, z: FRONT_CUSHION },
+  dashboard: { yStart: 0.45, yEnd: 0.75, zTop: 1.18 },
   windows: [
     { id: 'windshield', side: 'front', xStart: -0.7, xEnd: 0.7, zBottom: 1.24, zTop: 1.81, rake: { yAtBottom: 0.42, yAtTop: 0.8 } },
-    { id: 'rear-glass', side: 'rear', xStart: -0.62, xEnd: 0.62, zBottom: 1.18, zTop: 1.7 },
+    { id: 'rear-glass', side: 'rear', xStart: -0.62, xEnd: 0.62, zBottom: REAR_GLASS_BOTTOM, zTop: 1.7 },
     ...side('left', [[0.66, 1.28]]),
     ...side('left', [[1.4, 2.45], [2.55, 3.6], [3.7, 4.55]], 1),
     ...side('right', [[0.66, 1.28]]),

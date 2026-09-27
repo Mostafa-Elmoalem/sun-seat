@@ -1,84 +1,67 @@
-import type { SideWindow, VehicleProfile, VehicleSeat, VehicleWindow } from '../core/types/vehicle.ts';
+import type { VehicleProfile, VehicleSeat, VehicleWindow } from '../core/types/vehicle.ts';
+import { EGYPT_MICROBUS_14 } from '../../packages/egypt-microbus/src/spec.ts';
 
 /**
  * Egyptian 14-seat microbus: the Chinese HiAce H100 family that fills Egyptian terminals
  * (King Long / Golden Dragon, Jinbei Haise, Foton View), standard roof.
- * Exterior 4.98 x 1.70 x 1.97 m, wheelbase 2.59 m (Golden Dragon 14-seat, El Kasrawy spec sheet).
- * Cabin heights and window openings are estimated from the H100 body; refine them from a
- * measured model when one is available.
- * Left-hand drive, sliding door on the right.
+ * Every number (body, glass, seats, driver) comes from the egypt-microbus package spec,
+ * the same data the 3D model is built from, so the engine and the picture cannot disagree.
+ * This file only adds what the app needs on top: names, labels and trip timing.
  * Layout confirmed by the owner:
  *   row 0: driver (left) + seat 1 (middle) + seat 2 (right window)
  *   rows 1 to 3: left window + middle + folding jump seat on the right (door side)
- *   row 4: rear bench of 3
+ *   row 4: back bench of 3 against the rear door
  */
-const MB_CUSHION = 0.96;
-const MB_ROWS_Y = [0.95, 1.8, 2.6, 3.4, 4.25];
+const MB_BENCH_AR = ['', 'الكنبة الأولى', 'الكنبة التانية', 'الكنبة التالتة', 'الكنبة الورانية'];
+const MB_BENCH_EN = ['', 'First bench', 'Second bench', 'Third bench', 'Back bench'];
 
-function microbusSeats(): VehicleSeat[] {
-  const seats: VehicleSeat[] = [
-    seat(1, 0, 1, 'middle', false, 0.0, MB_ROWS_Y[0]!, MB_CUSHION + 0.04, 'قدام جنب السواق', 'Front, next to the driver'),
-    seat(2, 0, 2, 'right', true, 0.46, MB_ROWS_Y[0]!, MB_CUSHION + 0.04, 'قدام، شباك ناحية الباب', 'Front, door side window')
-  ];
-  const benchAr = ['', 'الكنبة الأولى', 'الكنبة التانية', 'الكنبة التالتة'];
-  const benchEn = ['', 'First bench', 'Second bench', 'Third bench'];
-  let id = 3;
-  for (let row = 1; row <= 3; row++) {
-    const y = MB_ROWS_Y[row]!;
-    seats.push(seat(id++, row, 0, 'left', true, -0.52, y, MB_CUSHION, `${benchAr[row]}، شباك ناحية السواق`, `${benchEn[row]}, driver side window`));
-    seats.push(seat(id++, row, 1, 'middle', false, -0.08, y, MB_CUSHION, `${benchAr[row]}، النص`, `${benchEn[row]}, middle`));
-    seats.push({
-      ...seat(id++, row, 2, 'right', true, 0.5, y, MB_CUSHION, `${benchAr[row]}، القلاب ناحية الباب`, `${benchEn[row]}, door side jump seat`),
-      isJump: true
-    });
+function microbusLabel(row: number, col: number, isJump: boolean): { ar: string; en: string } {
+  if (row === 0) {
+    return col === 1 ? { ar: 'قدام جنب السواق', en: 'Front, next to the driver' } : { ar: 'قدام، شباك ناحية الباب', en: 'Front, door side window' };
   }
-  const back = MB_ROWS_Y[4]!;
-  seats.push(seat(id++, 4, 0, 'left', true, -0.5, back, MB_CUSHION, 'الكنبة الورانية، شباك ناحية السواق', 'Back bench, driver side window'));
-  seats.push(seat(id++, 4, 1, 'middle', false, 0, back, MB_CUSHION, 'الكنبة الورانية، النص', 'Back bench, middle'));
-  seats.push(seat(id++, 4, 2, 'right', true, 0.5, back, MB_CUSHION, 'الكنبة الورانية، شباك ناحية الباب', 'Back bench, door side window'));
-  return seats;
+  const place =
+    col === 0
+      ? { ar: 'شباك ناحية السواق', en: 'driver side window' }
+      : col === 1
+        ? { ar: 'النص', en: 'middle' }
+        : isJump
+          ? { ar: 'القلاب ناحية الباب', en: 'door side jump seat' }
+          : { ar: 'شباك ناحية الباب', en: 'door side window' };
+  return { ar: `${MB_BENCH_AR[row]}، ${place.ar}`, en: `${MB_BENCH_EN[row]}, ${place.en}` };
 }
 
-function sideWindows(
-  side: 'left' | 'right',
-  spans: [number, number][],
-  zBottom: number,
-  zTop: number
-): SideWindow[] {
-  return spans.map(([yStart, yEnd], i) => ({ id: `${side}-${i}`, side, yStart, yEnd, zBottom, zTop }));
-}
+const spec = EGYPT_MICROBUS_14;
 
 export const MICROBUS_14: VehicleProfile = {
   id: 'microbus-14',
   nameAr: 'ميكروباص 14 راكب',
   nameEn: '14-seat microbus',
   type: 'microbus',
-  totalSeats: 14,
+  totalSeats: spec.seats.length,
   speedFactor: 1.15,
   stopOverheadMin: 10,
   hasCurtains: false,
-  doorSide: 'right',
-  dimensions: {
-    lengthM: 4.98,
-    widthM: 1.7,
-    heightM: 1.97,
-    floorZ: 0.55,
-    roofInnerZ: 1.86,
-    frontWallY: 0.45,
-    rearWallY: 4.9
-  },
-  driver: { x: -0.45, y: MB_ROWS_Y[0]!, z: MB_CUSHION + 0.04 },
-  windows: [
-    { id: 'windshield', side: 'front', xStart: -0.72, xEnd: 0.72, zBottom: 1.02, zTop: 1.74 },
-    { id: 'rear-glass', side: 'rear', xStart: -0.6, xEnd: 0.6, zBottom: 1.2, zTop: 1.72 },
-    // Front doors reach lower at the front edge; modeled as their average opening.
-    ...sideWindows('left', [[0.55, 1.25]], 1.08, 1.74),
-    ...sideWindows('left', [[1.35, 2.4], [2.5, 3.55], [3.65, 4.6]], 1.12, 1.74).map((w, i) => ({ ...w, id: `left-${i + 1}` })),
-    ...sideWindows('right', [[0.55, 1.25]], 1.08, 1.74),
-    // The sliding door window, then the fixed windows behind it.
-    ...sideWindows('right', [[1.35, 2.25], [2.35, 3.45], [3.55, 4.6]], 1.12, 1.74).map((w, i) => ({ ...w, id: `right-${i + 1}` }))
-  ],
-  seats: microbusSeats()
+  doorSide: spec.doors.sliding.side,
+  dimensions: { ...spec.dimensions, wallThicknessM: spec.body.wallThickness },
+  driver: { ...spec.driver },
+  dashboard: { ...spec.dashboard },
+  windows: spec.windows.map((w) => ({ ...w })),
+  seats: spec.seats.map((s): VehicleSeat => {
+    const label = microbusLabel(s.row, s.col, s.isJump);
+    return {
+      id: s.id,
+      row: s.row,
+      col: s.col,
+      side: s.side,
+      isWindow: s.isWindow,
+      isJump: s.isJump,
+      backHeight: s.backHeight,
+      hasHeadrest: s.hasHeadrest,
+      labelAr: label.ar,
+      labelEn: label.en,
+      position: { ...s.position }
+    };
+  })
 };
 
 /**
