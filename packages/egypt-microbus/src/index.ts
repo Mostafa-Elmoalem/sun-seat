@@ -1,5 +1,6 @@
 import * as THREE from 'three';
-import { buildShell, type ShellPart, type ShellParts, type ShellSlot } from './body.ts';
+import type { ShellPart, ShellParts, ShellSlot } from './shell-types.ts';
+import { mergeByMaterial } from './merge.ts';
 import { decodeShell } from './shell-codec.ts';
 import { buildExterior } from './details.ts';
 import { buildWheels } from './wheels.ts';
@@ -12,20 +13,31 @@ export * from './spec.ts';
 export { DEFAULT_LIVERY, type Livery } from './materials.ts';
 export type { Occupants } from './cabin.ts';
 export { encodeShell, decodeShell } from './shell-codec.ts';
-export type { ShellParts } from './body.ts';
+export type { ShellParts } from './shell-types.ts';
 
 /**
- * Downloads a shell made by scripts/build-microbus-shell.mts. Resolves to null when the
- * file is missing, stale or offline, so the caller can fall back to cutting it on the device.
+ * Cuts the shell on this device. Loads the CSG code only now, so a page that ships the
+ * precomputed shell never downloads it. Takes seconds on a phone; prefer loadShell.
  */
-export async function loadShell(spec: MicrobusSpec, url: string, init?: RequestInit): Promise<ShellParts | null> {
-  try {
-    const response = await fetch(url, init);
-    if (!response.ok) return null;
-    return decodeShell(spec, await response.arrayBuffer());
-  } catch {
-    return null;
+export async function cutShell(spec: MicrobusSpec): Promise<ShellParts> {
+  const { buildShell } = await import('./body.ts');
+  return buildShell(spec);
+}
+
+/**
+ * The shell for a spec: the file made by scripts/build-microbus-shell.mts when `url`
+ * is given and it loads, otherwise cut on the device (missing, stale or offline file).
+ */
+export async function loadShell(spec: MicrobusSpec, url?: string, init?: RequestInit): Promise<ShellParts> {
+  if (url) {
+    try {
+      const response = await fetch(url, init);
+      if (response.ok) return decodeShell(spec, await response.arrayBuffer());
+    } catch {
+      // Fall through to cutting it here.
+    }
   }
+  return cutShell(spec);
 }
 
 export interface BuildOptions {
@@ -40,8 +52,15 @@ export interface BuildOptions {
   occupants?: boolean;
   /** A soft dark ellipse on the ground under the body. */
   contactShadow?: boolean;
-  /** A precomputed shell (see loadShell). Without it the shell is cut on the device, which takes seconds on a phone. */
-  shell?: ShellParts | null;
+  /** The body shell (see loadShell). */
+  shell: ShellParts;
+  /**
+   * Merge static parts that share a material into one mesh each (default true). Keeps a
+   * phone at a few dozen draw calls instead of hundreds; seat groups stay as named markers.
+   */
+  merge?: boolean;
+  /** 'low' drops clearcoat and physical glass for weaker GPUs (default 'high'). */
+  quality?: 'high' | 'low';
 }
 
 export interface MicrobusModel {
@@ -77,12 +96,12 @@ export interface MicrobusModel {
 }
 
 /**
- * Builds the Egyptian 14-seat microbus. The shell geometry is computed once per
- * spec id and cached; the rest is cheap.
+ * Builds the Egyptian 14-seat microbus around a shell from loadShell. Synchronous and
+ * cheap once the shell exists.
  */
-export function buildMicrobus(spec: MicrobusSpec = EGYPT_MICROBUS_14, options: BuildOptions = {}): MicrobusModel {
+export function buildMicrobus(spec: MicrobusSpec = EGYPT_MICROBUS_14, options: BuildOptions): MicrobusModel {
   const livery = { ...DEFAULT_LIVERY, ...options.livery };
-  const materials = createMaterials(livery, options.envMap ?? null, options.plateText ?? 'ن ق ب  ٤٥٣٢');
+  const materials = createMaterials(livery, options.envMap ?? null, options.plateText ?? 'ن ق ب  ٤٥٣٢', options.quality ?? 'high');
   const L = spec.dimensions.lengthM;
   const owned: THREE.BufferGeometry[] = [];
   const track = <T extends THREE.BufferGeometry>(g: T): T => {
@@ -93,7 +112,7 @@ export function buildMicrobus(spec: MicrobusSpec = EGYPT_MICROBUS_14, options: B
   const group = new THREE.Group();
   group.name = 'EgyptMicrobus';
 
-  const shell = options.shell ?? buildShell(spec);
+  const shell = options.shell;
   const shellMesh = (part: ShellPart, skin: THREE.Material, name: string) => {
     const bySlot: Record<ShellSlot, THREE.Material> = { outer: skin, inner: materials.interior, reveal: materials.trim, well: materials.well };
     const mesh = new THREE.Mesh(part.geometry, part.slots.map((slot) => bySlot[slot]));
@@ -113,6 +132,14 @@ export function buildMicrobus(spec: MicrobusSpec = EGYPT_MICROBUS_14, options: B
   group.add(wheels);
   const cabin = buildCabin(spec, materials, track, { occupants: options.occupants ?? true, destination: options.destination ?? null });
   group.add(cabin.cabin, cabin.ceiling);
+
+  if (options.merge ?? true) {
+    // Glass stays per window (named, transparent, sorted); the card keeps its own texture.
+    const keep = (m: THREE.Mesh) => m.name.startsWith('Glass_') || m.name === 'DestinationCard';
+    for (const root of [exterior.details, exterior.roofDetails, wheels, cabin.cabin, cabin.ceiling]) {
+      mergeByMaterial(root, keep).forEach((g) => owned.push(g));
+    }
+  }
 
   let contactShadow: THREE.Mesh | null = null;
   if (options.contactShadow ?? true) {

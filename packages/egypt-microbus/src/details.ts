@@ -2,7 +2,7 @@ import * as THREE from 'three';
 import { RoundedBoxGeometry } from 'three/examples/jsm/geometries/RoundedBoxGeometry.js';
 import type { EndWindowSpec, MicrobusSpec, SideWindowSpec } from './spec.ts';
 import type { MicrobusMaterials } from './materials.ts';
-import { frontFaceY, rearFaceY, roofZAt } from './body.ts';
+import { frontFaceY, rearFaceY, roofZAt } from './outline.ts';
 
 /**
  * Exterior details, all placed in the vehicle frame (x across, y from the front bumper,

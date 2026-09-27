@@ -121,7 +121,7 @@ export function TripForm() {
       </section>
 
       {s.origin?.kind !== 'gps' && (
-        <button type="button" className="locate-btn" onClick={useMyLocation} disabled={gps === 'locating'} data-testid="locate-btn">
+        <button type="button" className="btn btn-outline locate-btn" onClick={useMyLocation} disabled={gps === 'locating'} data-testid="locate-btn">
           <IconLocate />
           {gps === 'locating' ? c.locating : c.useMyLocation}
         </button>

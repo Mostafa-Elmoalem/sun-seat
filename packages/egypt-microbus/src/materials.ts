@@ -17,13 +17,13 @@ export const DEFAULT_LIVERY: Livery = {
 };
 
 export interface MicrobusMaterials {
-  paint: THREE.MeshPhysicalMaterial;
-  skirt: THREE.MeshPhysicalMaterial;
+  paint: THREE.MeshStandardMaterial;
+  skirt: THREE.MeshStandardMaterial;
   trim: THREE.MeshStandardMaterial;
   rubber: THREE.MeshStandardMaterial;
   chrome: THREE.MeshStandardMaterial;
-  glass: THREE.MeshPhysicalMaterial;
-  lens: THREE.MeshPhysicalMaterial;
+  glass: THREE.MeshStandardMaterial;
+  lens: THREE.MeshStandardMaterial;
   /** Inside of the wheel wells. */
   well: THREE.MeshStandardMaterial;
   amber: THREE.MeshStandardMaterial;
@@ -48,16 +48,22 @@ export interface MicrobusMaterials {
 /**
  * Exterior materials take the optional environment map (reflections on paint,
  * chrome and glass). Interior materials never do, so reflections cannot wash out
- * the sun patches inside the cabin.
+ * the sun patches inside the cabin. The low quality drops clearcoat and physical glass,
+ * which cost the most to compile and to draw on a phone.
  */
-export function createMaterials(livery: Livery, envMap: THREE.Texture | null, plateText: string): MicrobusMaterials {
+export function createMaterials(livery: Livery, envMap: THREE.Texture | null, plateText: string, quality: 'high' | 'low' = 'high'): MicrobusMaterials {
   const ext = { envMap, envMapIntensity: envMap ? 1 : 0 };
-  const paint = new THREE.MeshPhysicalMaterial({ color: livery.body, roughness: 0.34, metalness: 0, clearcoat: 1, clearcoatRoughness: 0.12, ...ext });
-  const skirt = new THREE.MeshPhysicalMaterial({ color: livery.skirt, roughness: 0.36, metalness: 0, clearcoat: 0.9, clearcoatRoughness: 0.15, ...ext });
+  const high = quality === 'high';
+  const lacquer = (color: string, roughness: number, clearcoat: number) =>
+    high
+      ? new THREE.MeshPhysicalMaterial({ color, roughness, metalness: 0, clearcoat, clearcoatRoughness: 0.13, ...ext })
+      : new THREE.MeshStandardMaterial({ color, roughness: roughness * 0.9, metalness: 0, ...ext });
+  const paint = lacquer(livery.body, 0.34, 1);
+  const skirt = lacquer(livery.skirt, 0.36, 0.9);
   const trim = new THREE.MeshStandardMaterial({ color: '#17191c', roughness: 0.55, metalness: 0.05, ...ext, envMapIntensity: envMap ? 0.35 : 0 });
   const rubber = new THREE.MeshStandardMaterial({ color: '#0d0e10', roughness: 0.9 });
   const chrome = new THREE.MeshStandardMaterial({ color: '#dfe3e8', roughness: 0.16, metalness: 1, ...ext });
-  const glass = new THREE.MeshPhysicalMaterial({
+  const glass = new THREE.MeshStandardMaterial({
     color: '#7f9fb6',
     roughness: 0.04,
     metalness: 0,
@@ -67,7 +73,7 @@ export function createMaterials(livery: Livery, envMap: THREE.Texture | null, pl
     side: THREE.DoubleSide,
     ...ext
   });
-  const lens = new THREE.MeshPhysicalMaterial({
+  const lens = new THREE.MeshStandardMaterial({
     color: '#ffffff',
     map: lensTexture(),
     roughness: 0.08,

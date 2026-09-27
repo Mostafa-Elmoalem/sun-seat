@@ -25,10 +25,15 @@ function bestSet(verdict: TripExposureVerdict): Set<number> {
   return new Set(verdict.seatAdvice && verdict.status !== 'NIGHT' ? verdict.bestSeatIds : []);
 }
 
-/** Share of the trip in sun, counting light sun as half. */
+/**
+ * Share of the trip in sun, counting light sun as half. A few minutes of light sun over a
+ * long trip still reads as shade, so a recommended seat never looks sunny for a trace of it.
+ */
+export const SHADE_BELOW = 0.06;
+
 function tripLevel(strong: number, light: number, tripMinutes: number): 0 | 1 | 2 | 3 {
-  if (strong + light === 0) return 0;
   const share = (strong + 0.5 * light) / Math.max(1, tripMinutes);
+  if (share < SHADE_BELOW) return 0;
   return share < 0.2 ? 1 : share < 0.45 ? 2 : 3;
 }
 

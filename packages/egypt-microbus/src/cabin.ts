@@ -3,7 +3,7 @@ import { RoundedBoxGeometry } from 'three/examples/jsm/geometries/RoundedBoxGeom
 import { SEAT_SHAPE, type MicrobusSpec, type SeatSpec, type Vec3 } from './spec.ts';
 import type { MicrobusMaterials } from './materials.ts';
 import { destinationCardTexture } from './textures.ts';
-import { roofZAt } from './body.ts';
+import { roofZAt } from './outline.ts';
 
 type Track = <T extends THREE.BufferGeometry>(g: T) => T;
 

@@ -3,7 +3,6 @@ import type { DecodedRoute } from '../../../core/types/routes.ts';
 import type { TimelineStep, TripExposureVerdict } from '../../../core/types/vehicle.ts';
 import type { Place } from '../../../core/types/places.ts';
 import { COPY, compassName, type AppLanguage } from '../../i18n/copy.ts';
-import { formatTime } from '../../format.ts';
 import { IconInfo } from '../../shared/Icons.tsx';
 
 /**
@@ -115,13 +114,15 @@ export function RouteFigure({
   }
 
   return (
-    <section className="block" data-testid="route-figure">
-      <div className="block-head">
-        <h2 className="block-title">{c.routeFigure}</h2>
-        {focus && <span className="block-aside">{formatTime(focus.timeMs, lang)}</span>}
-      </div>
-      <figure className="figure">
-        <svg viewBox={`0 0 ${W} ${H}`} direction="ltr" role="img" aria-label={`${shortName(origin, lang)} ${lang === 'ar' ? 'إلى' : 'to'} ${shortName(destination, lang)}`}>
+    <>
+      <div className="route-box">
+        <svg
+          viewBox={`0 0 ${W} ${H}`}
+          preserveAspectRatio="xMidYMid meet"
+          direction="ltr"
+          role="img"
+          aria-label={`${c.routeFigure}: ${shortName(origin, lang)} ${lang === 'ar' ? 'إلى' : 'to'} ${shortName(destination, lang)}`}
+        >
           <defs>
             <marker id="head-arrow" viewBox="0 0 10 10" refX="7" refY="5" markerWidth="6" markerHeight="6" orient="auto">
               <path d="M0 0 10 5 0 10z" fill="#1b2f7c" />
@@ -142,8 +143,6 @@ export function RouteFigure({
             strokeLinejoin="round"
             strokeLinecap="round"
             strokeDasharray={route.isApproximate ? '6 6' : undefined}
-            pathLength={route.isApproximate ? undefined : 1}
-            style={route.isApproximate ? undefined : { strokeDasharray: 1, animation: 'ink-draw 900ms cubic-bezier(0.16,1,0.3,1) both' }}
           />
           <circle cx={sx} cy={sy} r="6" fill="#fbfcfe" stroke="#1b2f7c" strokeWidth="2.5" />
           <circle cx={ex} cy={ey} r="6" fill="#1b2f7c" />
@@ -155,18 +154,11 @@ export function RouteFigure({
           </text>
           {protractor}
         </svg>
-        <figcaption className="figure-caption">
-          <span className={`source-tag${route.isApproximate ? ' is-approx' : ''}`} data-testid="route-source" data-source={route.source}>
-            <IconInfo />
-            {c.source[route.source]}
-          </span>
-          <br />
-          {c.routeCaption(route.totalDistanceKm.toFixed(0), compassName(verdict.meanHeadingDeg, lang))}{' '}
-          {lang === 'ar'
-            ? 'السهم الأزرق اتجاه الطريق، والأصفر اتجاه الشمس، والزاوية الحمرا بينهم هي اللي بتحدد الشمس هتضرب أنهي جنب.'
-            : 'Blue is the road heading, yellow is the sun, and the red angle between them decides which side gets it.'}
-        </figcaption>
-      </figure>
-    </section>
+      </div>
+      <p className={`route-caption${route.isApproximate ? ' is-approx' : ''}`} data-testid="route-source" data-source={route.source}>
+        <IconInfo />
+        {c.source[route.source]} · {c.routeCaption(route.totalDistanceKm.toFixed(0), compassName(verdict.meanHeadingDeg, lang))}
+      </p>
+    </>
   );
 }

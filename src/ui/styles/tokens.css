@@ -1,0 +1,57 @@
+/* "اقعد فين؟" : the geography notebook, design tokens.
+   Ink on graph paper. Ballpoint blue carries text and actions, graphite carries
+   construction and secondary text, teacher red marks only the answer and errors,
+   highlighter yellow marks only sun. Shade is clean paper. */
+
+@font-face {
+  font-family: 'Readex Pro';
+  src: url('/fonts/readex-pro-arabic.woff2') format('woff2');
+  font-weight: 160 700;
+  font-display: swap;
+  unicode-range: U+0600-06FF, U+0750-077F, U+0870-088E, U+0890-0891, U+0897-08E1, U+08E3-08FF, U+200C-200E, U+2010-2011,
+    U+204F, U+2E41, U+FB50-FDFF, U+FE70-FE74, U+FE76-FEFC;
+}
+@font-face {
+  font-family: 'Readex Pro';
+  src: url('/fonts/readex-pro-latin.woff2') format('woff2');
+  font-weight: 160 700;
+  font-display: swap;
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329,
+    U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+
+:root {
+  --paper: #fbfcfe;
+  --desk: #e9edf3;
+  --grid: #e9eef6;
+  --grid-strong: #d8e0ec;
+  --margin-rule: #f0c3c9;
+
+  --ink: #1b2f7c;
+  --ink-hover: #243c95;
+  --ink-soft: #3d55a8;
+  --ink-wash: #e8edf9;
+  --ink-press: #dde4f6;
+  --text: #1d2126;
+  --graphite: #555c66;
+  --pencil: #8f98a4;
+  --pencil-light: #c3cad3;
+
+  --red: #cc1f37;
+  --sun: #ffe03a;
+  --sun-soft: #fff4b8;
+  --sun-deep: #f5b800;
+  --sun-ink: #6b4d00;
+
+  --radius: 14px;
+  --radius-sm: 10px;
+  --cell: 20px;
+  --gutter: 16px;
+
+  --font: 'Readex Pro', 'Noto Sans Arabic', 'Segoe UI', Tahoma, sans-serif;
+  --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+
+  /* The stage: pictures plus the time bar must fit one phone screen. */
+  --pane-h: clamp(320px, calc(100svh - 236px), 600px);
+  color-scheme: light;
+}

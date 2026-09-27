@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 import { mergeVertices } from 'three/examples/jsm/utils/BufferGeometryUtils.js';
-import type { ShellPart, ShellParts, ShellSlot } from './body.ts';
+import type { ShellPart, ShellParts, ShellSlot } from './shell-types.ts';
 import type { MicrobusSpec } from './spec.ts';
 
 /**

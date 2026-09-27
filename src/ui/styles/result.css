@@ -1,0 +1,663 @@
+/* The result: the answer, then one stage (pictures plus the time bar), then the working. */
+
+.result-bar {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 8px;
+}
+
+.trip-summary {
+  text-align: center;
+  min-width: 0;
+}
+
+.trip-summary-route {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--ink);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.trip-summary-time {
+  font-size: 12.5px;
+  color: var(--graphite);
+}
+
+.result-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+/* ---------- the answer ---------- */
+
+.verdict {
+  position: relative;
+  padding-top: 4px;
+  max-width: 640px;
+}
+
+.verdict-title {
+  font-size: clamp(34px, 10vw, 46px);
+  line-height: 1.2;
+  font-weight: 700;
+  color: var(--ink);
+  letter-spacing: -0.01em;
+  text-wrap: balance;
+}
+
+.verdict-mark {
+  position: relative;
+  display: inline-block;
+  padding: 0 12px;
+  white-space: nowrap;
+}
+
+.verdict-mark-ring {
+  position: absolute;
+  inset: -20% -2% -24% -2%;
+  width: 104%;
+  height: 144%;
+  overflow: visible;
+  pointer-events: none;
+}
+
+.verdict-mark-ring path {
+  fill: none;
+  stroke: var(--red);
+  stroke-width: 3.2;
+  stroke-linecap: round;
+  stroke-dasharray: 1;
+  stroke-dashoffset: 0;
+  animation: ink-draw 620ms 180ms var(--ease-out) both;
+}
+
+.verdict-sub {
+  margin-top: 12px;
+  font-size: 17px;
+  line-height: 1.7;
+  color: var(--text);
+  max-width: 38ch;
+}
+
+.verdict-sub b {
+  color: var(--ink);
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+/* The end of the vehicle to avoid: written on highlighter, because it is about sun. */
+.end-advice {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  margin-top: 14px;
+  padding: 12px 14px;
+  border-radius: 12px;
+  background: var(--sun-soft);
+  border: 1.5px solid var(--sun-deep);
+  max-width: 44ch;
+}
+
+.end-advice svg {
+  flex: none;
+  margin-top: 2px;
+}
+
+.end-advice-title {
+  font-size: 17px;
+  font-weight: 700;
+  line-height: 1.45;
+  color: var(--text);
+}
+
+.end-advice-why {
+  font-size: 14px;
+  line-height: 1.6;
+  color: var(--sun-ink);
+}
+
+.verdict-note {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  margin-top: 10px;
+  font-size: 14px;
+  line-height: 1.6;
+  color: var(--graphite);
+}
+
+.verdict-note .icon {
+  width: 18px;
+  height: 18px;
+  margin-top: 3px;
+}
+
+/* Best seats: the same red ring as on the plan; tapping one picks it on every picture. */
+.best-seats {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin-top: 14px;
+}
+
+.best-seats-label {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--graphite);
+  margin-inline-end: 4px;
+}
+
+.seat-chip {
+  width: 48px;
+  height: 48px;
+  border-radius: 12px;
+  border: 2px solid var(--red);
+  background: var(--paper);
+  color: var(--ink);
+  font-size: 20px;
+  font-weight: 700;
+  display: grid;
+  place-items: center;
+  transition: background-color 160ms var(--ease-out);
+}
+
+.seat-chip:hover {
+  background: var(--ink-wash);
+}
+
+.seat-chip[aria-pressed='true'] {
+  background: var(--ink);
+  border-color: var(--ink);
+  color: #fff;
+}
+
+/* ---------- the stage ---------- */
+
+.stage {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 10px;
+  border: 1.5px solid var(--pencil-light);
+  border-radius: 16px;
+  background: var(--paper);
+  scroll-margin-top: 8px;
+}
+
+.stage-panes {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  height: var(--pane-h);
+}
+
+.stage-col {
+  min-width: 0;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.stage-col[hidden] {
+  display: none;
+}
+
+.stage-col .stage-pane {
+  flex: 1;
+}
+
+@media (min-width: 760px) {
+  :root {
+    --pane-h: clamp(440px, calc(100svh - 320px), 620px);
+  }
+
+  .stage-panes {
+    grid-template-columns: minmax(0, 0.85fr) minmax(0, 1.15fr);
+    gap: 12px;
+  }
+}
+
+.stage-pane {
+  position: relative;
+  min-width: 0;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  border-radius: 12px;
+  overflow: hidden;
+  border: 1px solid var(--grid-strong);
+}
+
+
+/* Which moment a picture shows: the whole trip, or one minute. */
+.pane-label {
+  position: absolute;
+  z-index: 2;
+  top: 8px;
+  inset-inline-start: 8px;
+  max-width: calc(100% - 16px);
+  padding: 4px 10px;
+  border-radius: 999px;
+  background: var(--paper);
+  border: 1.5px solid var(--pencil-light);
+  font-size: 13.5px;
+  font-weight: 600;
+  color: var(--ink);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  pointer-events: none;
+}
+
+.pane-label.is-moment {
+  border-color: var(--red);
+}
+
+.plan-box {
+  flex: 1;
+  min-height: 0;
+  padding: 40px 4px 0;
+  direction: ltr;
+}
+
+.plan-box svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+.seat {
+  cursor: pointer;
+}
+
+.seat:focus-visible {
+  outline: none;
+}
+
+.seat:focus-visible .seat-cushion {
+  stroke: var(--ink-soft);
+  stroke-width: 3;
+}
+
+.pane-foot {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 6px 8px 8px;
+  border-top: 1px solid var(--grid-strong);
+}
+
+.legend {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 4px 14px;
+  font-size: 12.5px;
+  color: var(--graphite);
+}
+
+.legend-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.legend-swatch {
+  width: 16px;
+  height: 12px;
+  border-radius: 3px;
+  border: 1.5px solid var(--pencil);
+  background: var(--paper);
+}
+
+.legend-swatch.is-sun {
+  background: var(--sun);
+  border-color: var(--sun-deep);
+}
+
+.legend-swatch.is-some {
+  background: var(--sun-soft);
+  border-color: var(--sun-deep);
+}
+
+.seat-detail {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 40px;
+}
+
+.seat-detail-num {
+  width: 36px;
+  height: 36px;
+  flex: none;
+  border-radius: 9px;
+  display: grid;
+  place-items: center;
+  font-size: 17px;
+  font-weight: 700;
+  color: var(--ink);
+  border: 2px solid var(--ink);
+}
+
+.seat-detail-body {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  line-height: 1.45;
+}
+
+.seat-detail-title {
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.seat-detail-text {
+  font-size: 13px;
+  color: var(--graphite);
+}
+
+/* 3D pane */
+.three-slot {
+  position: absolute;
+  inset: 0;
+  background: #dfe7f1;
+  direction: ltr;
+}
+
+.three-slot canvas {
+  display: block;
+  width: 100% !important;
+  height: 100% !important;
+  touch-action: none;
+}
+
+.three-views {
+  position: absolute;
+  z-index: 2;
+  bottom: 8px;
+  inset-inline: 8px;
+  box-shadow: 0 6px 16px -8px rgba(27, 47, 124, 0.45);
+}
+
+.three-poster {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  padding: 24px;
+  text-align: center;
+  font-size: 14px;
+  line-height: 1.6;
+  color: var(--graphite);
+  background: #dfe7f1;
+}
+
+.sketching svg path {
+  fill: none;
+  stroke: var(--ink);
+  stroke-width: 2.4;
+  stroke-linecap: round;
+  stroke-dasharray: 1;
+  animation: sketch 1.4s var(--ease-out) infinite;
+}
+
+@keyframes sketch {
+  0% {
+    stroke-dashoffset: 1;
+  }
+  70%,
+  100% {
+    stroke-dashoffset: 0;
+  }
+}
+
+/* Route pane */
+.route-box {
+  flex: 1;
+  min-height: 0;
+  padding: 36px 6px 0;
+  direction: ltr;
+}
+
+.route-box svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+.route-caption {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 10px;
+  border-top: 1px solid var(--grid-strong);
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--graphite);
+}
+
+.route-caption.is-approx {
+  color: var(--red);
+  font-weight: 600;
+}
+
+.route-caption .icon {
+  width: 16px;
+  height: 16px;
+}
+
+/* The time bar: one control, right under the pictures it moves. */
+.timebar {
+  display: grid;
+  grid-template-columns: 48px minmax(0, 1fr);
+  align-items: center;
+  gap: 10px;
+}
+
+.timebar-track {
+  position: relative;
+  height: 64px;
+  border-radius: 8px;
+}
+
+.timebar-track:focus-within {
+  outline: 3px solid var(--ink-soft);
+  outline-offset: 2px;
+}
+
+.timebar-track svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+  touch-action: pan-y;
+  user-select: none;
+}
+
+.timebar-range {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  opacity: 0;
+  cursor: pointer;
+}
+
+.timebar-foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  min-height: 48px;
+  font-size: 13px;
+  color: var(--graphite);
+}
+
+.timebar-foot b {
+  color: var(--ink);
+  font-weight: 600;
+}
+
+/* ---------- the working ---------- */
+
+details.more {
+  border-top: 2px solid var(--pencil-light);
+  padding-top: 6px;
+}
+
+details.more summary {
+  list-style: none;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  min-height: 52px;
+  cursor: pointer;
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--ink);
+}
+
+details.more summary::-webkit-details-marker {
+  display: none;
+}
+
+details.more summary .icon {
+  transition: rotate 220ms var(--ease-out);
+}
+
+details.more[open] summary .icon {
+  rotate: 180deg;
+}
+
+.more-body {
+  display: flex;
+  flex-direction: column;
+  gap: 22px;
+  padding-bottom: 8px;
+}
+
+.more-body h3 {
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--ink);
+  margin-bottom: 10px;
+}
+
+.hint {
+  font-size: 13px;
+  line-height: 1.6;
+  color: var(--graphite);
+}
+
+/* Each side's sun as a highlighter stroke measured against the trip: full stroke for sun, soft for light sun. */
+.sides {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.side-row {
+  display: grid;
+  grid-template-columns: 6.5em minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 10px;
+  font-size: 15px;
+}
+
+.side-row-name {
+  font-weight: 600;
+  color: var(--text);
+}
+
+.side-row-track {
+  height: 16px;
+  display: flex;
+  border-radius: 3px;
+  overflow: hidden;
+  background: var(--paper);
+  border-bottom: 2px solid var(--pencil);
+}
+
+.side-row-strong {
+  background: var(--sun);
+}
+
+.side-row-light {
+  background: var(--sun-soft);
+}
+
+.side-row-mins {
+  font-weight: 600;
+  color: var(--text);
+  font-size: 14px;
+  white-space: nowrap;
+}
+
+.steps {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  list-style: none;
+  counter-reset: step;
+}
+
+.steps li {
+  display: grid;
+  grid-template-columns: 28px 1fr;
+  gap: 10px;
+  font-size: 15px;
+  line-height: 1.7;
+}
+
+.steps li::before {
+  counter-increment: step;
+  content: counter(step);
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  border: 2px solid var(--ink);
+  color: var(--ink);
+  display: grid;
+  place-items: center;
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.scenario-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 14px;
+}
+
+.scenario-table th,
+.scenario-table td {
+  padding: 8px 6px;
+  text-align: start;
+  border-bottom: 1px solid var(--grid-strong);
+}
+
+.scenario-table th {
+  font-weight: 600;
+  color: var(--graphite);
+  font-size: 13px;
+}
+
+/* A picture kept alive behind another one (the 3D, paused while hidden). */
+.pane-layer {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.pane-layer[hidden] {
+  display: none;
+}

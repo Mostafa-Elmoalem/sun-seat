@@ -202,6 +202,15 @@ export function BusSilhouette() {
   );
 }
 
+/** The sun as the notebook draws it: a highlighter disc with a deeper rim. */
+export function SunDot({ size = 22 }: { size?: number }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 22 22" aria-hidden="true">
+      <circle cx="11" cy="11" r="8" fill="#ffe03a" stroke="#f5b800" strokeWidth="2" />
+    </svg>
+  );
+}
+
 /** Brand mark: a sun cut by a window frame, drawn in ink and highlighter. */
 export function BrandMark() {
   return (

@@ -52,7 +52,7 @@ export function App() {
           )}
           <button
             type="button"
-            className="icon-btn"
+            className="btn btn-outline"
             onClick={() => setLang(lang === 'ar' ? 'en' : 'ar')}
             aria-label={c.langToggleLabel}
             data-testid="lang-toggle"

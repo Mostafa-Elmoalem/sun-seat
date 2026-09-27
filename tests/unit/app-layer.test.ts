@@ -5,7 +5,7 @@ import { MICROBUS_14 } from '../../src/data/vehicles.ts';
 import type { ProcessedRoute } from '../../src/core/types/routes.ts';
 import type { Place } from '../../src/core/types/places.ts';
 import { presentVerdict } from '../../src/app/result/verdict-model.ts';
-import { seatStates } from '../../src/app/result/seat-model.ts';
+import { seatStates, SHADE_BELOW } from '../../src/app/result/seat-model.ts';
 import { bandLevel, timelineCells } from '../../src/app/result/timeline-model.ts';
 import { fromNow, roundToFiveMinutes, tomorrowSameTime } from '../../src/app/trip/departure.ts';
 import { addRecent, recentPlaces, type RecentTrip } from '../../src/app/trip/recents.ts';
@@ -59,6 +59,17 @@ describe('seat model', () => {
     expect(states.get(3)!.sun).toBe('strong');
     for (const id of v.bestSeatIds) expect(states.get(id)!.isBest).toBe(true);
     for (const s of states.values()) if (s.strongMinutes + s.lightMinutes === 0) expect(s.level).toBe(0);
+  });
+
+  it('a trace of light sun on a recommended seat still reads as shade', () => {
+    const v = afternoonNorth();
+    const states = seatStates(v, MICROBUS_14, null);
+    for (const id of v.bestSeatIds) {
+      const s = states.get(id)!;
+      const share = (s.strongMinutes + 0.5 * s.lightMinutes) / v.tripMinutes;
+      if (share < SHADE_BELOW) expect(s.level).toBe(0);
+    }
+    expect(states.get(3)!.level).toBeGreaterThanOrEqual(2);
   });
 
   it('one moment: follows the sunlight at that step, not the trip totals', () => {

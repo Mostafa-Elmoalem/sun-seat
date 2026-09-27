@@ -223,6 +223,9 @@ export class VehicleScene {
   private selectedSeatId: number | null = null;
   private readonly halfL: number;
   private resizeObserver: ResizeObserver | null = null;
+  private prepared = false;
+  private active = true;
+  private northLabel: THREE.Sprite | null = null;
 
   constructor(
     private container: HTMLElement,
@@ -231,9 +234,12 @@ export class VehicleScene {
   ) {
     this.halfL = vehicle.dimensions.lengthM / 2;
     this.renderer = new THREE.WebGLRenderer({ antialias: !opts.lowEnd, powerPreference: 'default' });
-    this.renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, opts.lowEnd ? 1.25 : 2));
+    // Phones have 2.5x to 3x screens; 1.5x looks the same on a small canvas and costs half the pixels.
+    this.renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, opts.lowEnd ? 1.25 : 1.5));
     this.renderer.shadowMap.enabled = true;
-    this.renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+    this.renderer.shadowMap.type = opts.lowEnd ? THREE.PCFShadowMap : THREE.PCFSoftShadowMap;
+    // The sun does not move while the rider orbits: redraw the shadow map only when something changes.
+    this.renderer.shadowMap.autoUpdate = false;
     this.renderer.toneMapping = THREE.ACESFilmicToneMapping;
     this.renderer.toneMappingExposure = 1.1;
     this.renderer.outputColorSpace = THREE.SRGBColorSpace;
@@ -296,7 +302,13 @@ export class VehicleScene {
         this.envMap = pmrem.fromScene(new RoomEnvironment(), 0.04).texture;
         pmrem.dispose();
       }
-      this.microbus = buildMicrobus(EGYPT_MICROBUS_14, { shell: opts.shell ?? null, envMap: this.envMap, destination: opts.destination ?? null });
+      if (!opts.shell) throw new Error('VehicleScene: the microbus needs its shell (see loadShell)');
+      this.microbus = buildMicrobus(EGYPT_MICROBUS_14, {
+        shell: opts.shell,
+        envMap: this.envMap,
+        destination: opts.destination ?? null,
+        quality: opts.lowEnd ? 'low' : 'high'
+      });
       this.scene.add(this.microbus.group);
       this.microbus.setOccupied(0, true);
     } else {
@@ -312,6 +324,25 @@ export class VehicleScene {
       this.resizeObserver.observe(container);
     }
     this.setView('top');
+  }
+
+  /**
+   * Compiles every shader off the main thread where the browser allows it, before the
+   * first frame; until then nothing renders, so the page never stalls on compilation.
+   */
+  async prepare(): Promise<void> {
+    try {
+      await this.renderer.compileAsync(this.scene, this.camera);
+    } finally {
+      this.prepared = true;
+      this.shadowsChanged();
+    }
+  }
+
+  /** Something that casts or receives shadow changed: redraw the shadow map once. */
+  private shadowsChanged(): void {
+    this.renderer.shadowMap.needsUpdate = true;
+    this.invalidate();
   }
 
   /* ---------- building ---------- */
@@ -768,13 +799,17 @@ export class VehicleScene {
     this.sunPath.visible = pts.length > 1;
 
     // North marker on the ground.
-    this.northMarker.clear();
+    // The north label is drawn once and only moved afterwards.
+    if (!this.northLabel) {
+      this.northLabel = textSprite(this.opts.lang === 'ar' ? 'الشمال' : 'N', { size: 52, color: '#fbfcfe', bg: 'rgba(27,47,124,0.9)', overlay: false });
+      this.track(this.northLabel.material.map!);
+      this.track(this.northLabel.material);
+      this.northMarker.add(this.northLabel);
+    }
     const b = (sun.northRelativeDeg * Math.PI) / 180;
     const nDir = new THREE.Vector3(Math.sin(b), 0, -Math.cos(b));
-    const label = textSprite(this.opts.lang === 'ar' ? 'الشمال' : 'N', { size: 52, color: '#fbfcfe', bg: 'rgba(27,47,124,0.9)', overlay: false });
-    label.position.copy(nDir.clone().multiplyScalar(this.vehicle.type === 'bus' ? 9 : 5.2)).setY(0.35);
-    this.northMarker.add(label);
-    this.invalidate();
+    this.northLabel.position.copy(nDir.multiplyScalar(this.vehicle.type === 'bus' ? 9 : 5.2)).setY(0.35);
+    this.shadowsChanged();
   }
 
   setSelectedSeat(id: number | null): void {
@@ -784,7 +819,7 @@ export class VehicleScene {
     if (seat) this.youGroup.position.copy(this.toThree(seat.position.x, seat.position.y, seat.position.z));
     this.applyPassengerVisibility(seat);
     if (this.view === 'seat') this.setView('seat');
-    this.invalidate();
+    this.shadowsChanged();
   }
 
   private applyPassengerVisibility(selected: VehicleSeat | null): void {
@@ -856,8 +891,16 @@ export class VehicleScene {
       c.maxDistance = isBus ? 34 : 18;
       c.target.set(0, isBus ? 1.5 : 1.0, isBus ? 0 : 0.2);
       // Front three-quarter view from the sunny flank: the nose, the side glass and the light coming in.
+      // The distance fits the whole vehicle into the frame, whatever the pane's shape.
       const side = this.lastSun && this.lastSun.elevationDeg > 0 && Math.abs(this.lastSun.ux) > 0.05 ? Math.sign(this.lastSun.ux) : 1;
-      this.camera.position.set(side * (isBus ? 11 : 6.2), isBus ? 5.2 : 3.0, isBus ? -10 : -5.4);
+      const { lengthM, widthM, heightM } = this.vehicle.dimensions;
+      const radius = Math.hypot(lengthM / 2, widthM / 2, heightM / 2);
+      const vfov = THREE.MathUtils.degToRad(this.camera.fov);
+      const hfov = 2 * Math.atan(Math.tan(vfov / 2) * this.camera.aspect);
+      const distance = (radius / Math.sin(Math.min(vfov, hfov) / 2)) * 1.02;
+      const dir = new THREE.Vector3(side * (isBus ? 11 : 6.2), isBus ? 5.2 : 3.0, isBus ? -10 : -5.4).normalize();
+      this.camera.position.copy(c.target).addScaledVector(dir, distance);
+      c.maxDistance = Math.max(c.maxDistance, distance * 1.3);
     } else if (view === 'top') {
       this.camera.fov = 38;
       c.minDistance = isBus ? 10 : 5;
@@ -881,22 +924,37 @@ export class VehicleScene {
     }
     this.camera.updateProjectionMatrix();
     c.update();
-    this.invalidate();
+    this.shadowsChanged();
   }
 
   /* ---------- loop ---------- */
 
   invalidate(ms = 600): void {
     this.dirtyUntil = Math.max(this.dirtyUntil, performance.now() + ms);
-    if (!this.raf) this.raf = requestAnimationFrame(this.frame);
+    if (!this.raf && this.active) this.raf = requestAnimationFrame(this.frame);
+  }
+
+  /** Hidden behind another picture: keep everything built, draw nothing; draw again when shown. */
+  setActive(active: boolean): void {
+    if (active === this.active) return;
+    this.active = active;
+    if (!active) {
+      cancelAnimationFrame(this.raf);
+      this.raf = 0;
+      return;
+    }
+    this.resize();
+    this.shadowsChanged();
   }
 
   private frame = (): void => {
     this.raf = 0;
-    if (document.hidden) return;
+    if (document.hidden || !this.prepared) return;
+    // controls.update() fires 'change', which calls invalidate() and may already have
+    // queued the next frame: keep exactly one frame queued, never two chains.
     this.controls.update();
     this.renderer.render(this.scene, this.camera);
-    if (performance.now() < this.dirtyUntil) this.raf = requestAnimationFrame(this.frame);
+    if (!this.raf && performance.now() < this.dirtyUntil) this.raf = requestAnimationFrame(this.frame);
   };
 
 

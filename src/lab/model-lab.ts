@@ -13,7 +13,7 @@ import * as THREE from 'three';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 import { RoomEnvironment } from 'three/examples/jsm/environments/RoomEnvironment.js';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
-import { buildMicrobus, EGYPT_MICROBUS_14 } from '../../packages/egypt-microbus/src/index.ts';
+import { buildMicrobus, EGYPT_MICROBUS_14, loadShell } from '../../packages/egypt-microbus/src/index.ts';
 
 const params = new URLSearchParams(location.search);
 const view = params.get('view') ?? 'q';
@@ -36,7 +36,8 @@ const pmrem = new THREE.PMREMGenerator(renderer);
 const envMap = pmrem.fromScene(new RoomEnvironment(), 0.04).texture;
 
 const t0 = performance.now();
-const model = buildMicrobus(EGYPT_MICROBUS_14, { envMap, destination: 'إسكندرية' });
+const shell = await loadShell(EGYPT_MICROBUS_14, '/models/egypt-microbus-shell.bin');
+const model = buildMicrobus(EGYPT_MICROBUS_14, { envMap, destination: 'إسكندرية', shell });
 const buildMs = performance.now() - t0;
 scene.add(model.group);
 if (params.get('hide') === '1') model.group.visible = false;
