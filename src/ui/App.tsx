@@ -72,9 +72,19 @@ export function App() {
       )}
 
       <footer className="footer">
-        {lang === 'ar'
-          ? 'مكان الشمس محسوب على موبايلك. الأماكن والطرق من © OpenStreetMap. مش بنحفظ مكانك.'
-          : 'Sun position is computed on your phone. Places and roads © OpenStreetMap. Your location is never stored.'}
+        <p>
+          {lang === 'ar'
+            ? 'مكان الشمس محسوب على موبايلك. الأماكن والطرق من © OpenStreetMap. مش بنحفظ مكانك.'
+            : 'Sun position is computed on your phone. Places and roads © OpenStreetMap. Your location is never stored.'}
+        </p>
+        {screen === 'result' && (
+          <p data-testid="model-credit">
+            {c.modelCredit}{' '}
+            <a href="https://creativecommons.org/licenses/by/4.0/" target="_blank" rel="noreferrer">
+              CC BY 4.0
+            </a>
+          </p>
+        )}
       </footer>
 
       {toast && (

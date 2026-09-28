@@ -204,7 +204,7 @@ export function SeatPlan({ vehicle, verdict, step, selectedSeatId, onSelect, lan
             </text>
             {whole && L.minutes && (
               <text x={p.x} y={p.y + 16} textAnchor="middle" fontSize="11.5" fontWeight="600" fill={lvl > 0 ? '#5a4100' : '#555c66'}>
-                {minutes > 0 ? c.minutesShort(minutes) : c.legendShade}
+                {lvl > 0 ? c.minutesShort(minutes) : c.legendShade}
               </text>
             )}
             {isBest && (
@@ -224,7 +224,7 @@ export function SeatPlan({ vehicle, verdict, step, selectedSeatId, onSelect, lan
       })}
 
       {/* Sun and parallel rays, placed at the sun's bearing relative to the vehicle nose */}
-      {sunAngle !== null && <SunMarker angle={sunAngle} cx={cx} cy={cy} rx={L.body.w / 2 + 34} ry={L.body.h / 2 + 34} />}
+      {sunAngle !== null && <SunMarker angle={sunAngle} cx={cx} cy={cy} halfW={L.body.w / 2 + 34} halfH={L.body.h / 2 + 34} />}
     </svg>
   );
 }
@@ -234,13 +234,15 @@ function ringPath(x: number, y: number, rx: number, ry: number): string {
   return `M ${x + rx * 0.2} ${y - ry} C ${x + rx * 1.15} ${y - ry}, ${x + rx * 1.1} ${y + ry}, ${x} ${y + ry} C ${x - rx * 1.12} ${y + ry}, ${x - rx * 1.1} ${y - ry * 1.02}, ${x + rx * 0.05} ${y - ry * 1.02} C ${x + rx * 0.45} ${y - ry * 1.02}, ${x + rx * 0.7} ${y - ry * 0.9}, ${x + rx * 0.85} ${y - ry * 0.75}`;
 }
 
-function SunMarker({ angle, cx, cy, rx, ry }: { angle: number; cx: number; cy: number; rx: number; ry: number }) {
+function SunMarker({ angle, cx, cy, halfW, halfH }: { angle: number; cx: number; cy: number; halfW: number; halfH: number }) {
   const rad = (angle * Math.PI) / 180;
   // Vehicle nose is up: ahead = -y, right = +x.
   const dx = Math.sin(rad);
   const dy = -Math.cos(rad);
-  const sx = cx + dx * rx;
-  const sy = cy + dy * ry;
+  // Where the sun's direction leaves a box just outside the body, so the sun never sits on a seat.
+  const t = Math.min(Math.abs(dx) > 1e-6 ? halfW / Math.abs(dx) : Infinity, Math.abs(dy) > 1e-6 ? halfH / Math.abs(dy) : Infinity);
+  const sx = cx + dx * t;
+  const sy = cy + dy * t;
   const px = -dy;
   const py = dx;
   return (

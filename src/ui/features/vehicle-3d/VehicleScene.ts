@@ -27,11 +27,18 @@ export interface SunState {
   uy: number;
   uz: number;
   elevationDeg: number;
-  /** Bearing of geographic north relative to the vehicle nose, degrees clockwise. */
-  northRelativeDeg: number;
   /** Sun path for the day relative to the vehicle, as unit vectors (ux, uy, uz). */
   path: [number, number, number][];
 }
+
+/** From the seat the drawn sun sits this far from the rider's head, so it shows through the right window. */
+const SKY_DISTANCE = 12;
+const SKY_SUN_RADIUS = 0.7;
+/** Ground sun marker: the gap from the body to the disc centre (room for its rays), and its full reach past the body. */
+const GROUND_SUN_GAP = 1.05;
+const GROUND_SUN_BAND = GROUND_SUN_GAP + 0.4;
+/** Pixels at the top and bottom of the 3D pane covered by its label and its view switch. */
+const PANE_OVERLAY_PX = 52;
 
 const COLORS = {
   body: 0xf2f3ef,
@@ -180,7 +187,6 @@ function textSprite(text: string, opts: { size?: number; color?: string; bg?: st
 
 export interface SceneOptions {
   lowEnd: boolean;
-  lang: 'ar' | 'en';
   /** Precomputed microbus shell (see loadShell); without it the shell is cut on the device. */
   shell?: ShellParts | null;
   /** Written on the card behind the windshield. */
@@ -205,7 +211,6 @@ export class VehicleScene {
   private bestRings = new THREE.Group();
   private sunMesh: THREE.Mesh;
   private sunPath: THREE.Line;
-  private northMarker: THREE.Group;
   private roofParts: THREE.Mesh[] = [];
   /** The package microbus, when this vehicle is the 14-seat microbus. */
   private microbus: MicrobusModel | null = null;
@@ -222,17 +227,24 @@ export class VehicleScene {
   private view: ViewMode = 'top';
   private selectedSeatId: number | null = null;
   private readonly halfL: number;
+  /** From outside, the sun and its day arc make a small sun-path dome around the vehicle, clear of the body. */
+  private readonly domeCenter: THREE.Vector3;
+  private readonly domeRadius: number;
   private resizeObserver: ResizeObserver | null = null;
   private prepared = false;
   private active = true;
-  private northLabel: THREE.Sprite | null = null;
+  private fittedAspect = 0;
+  private hasSunPath = false;
 
   constructor(
     private container: HTMLElement,
     private vehicle: VehicleProfile,
-    private opts: SceneOptions
+    opts: SceneOptions
   ) {
     this.halfL = vehicle.dimensions.lengthM / 2;
+    const { widthM, heightM } = vehicle.dimensions;
+    this.domeCenter = new THREE.Vector3(0, heightM / 2, 0);
+    this.domeRadius = Math.hypot(this.halfL, widthM / 2, heightM / 2) + 0.45;
     this.renderer = new THREE.WebGLRenderer({ antialias: !opts.lowEnd, powerPreference: 'default' });
     // Phones have 2.5x to 3x screens; 1.5x looks the same on a small canvas and costs half the pixels.
     this.renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, opts.lowEnd ? 1.25 : 1.5));
@@ -278,19 +290,23 @@ export class VehicleScene {
     this.scene.add(this.fillLight);
 
     this.sunMesh = new THREE.Mesh(
-      new THREE.SphereGeometry(1.1, 24, 16),
+      new THREE.SphereGeometry(SKY_SUN_RADIUS, 24, 16),
       new THREE.MeshBasicMaterial({ color: COLORS.sun, fog: false })
     );
+    // The plan's sun: a pale disc with a deeper yellow rim (a back-face shell drawn just behind it).
+    const rim = new THREE.Mesh(
+      this.track(new THREE.SphereGeometry(SKY_SUN_RADIUS * 1.14, 24, 16)),
+      this.track(new THREE.MeshBasicMaterial({ color: 0xf5b800, side: THREE.BackSide, fog: false }))
+    );
+    this.sunMesh.add(rim);
     this.scene.add(this.sunMesh);
 
     this.sunPath = new THREE.Line(
       new THREE.BufferGeometry(),
-      new THREE.LineDashedMaterial({ color: 0xf5b800, dashSize: 0.6, gapSize: 0.45, transparent: true, opacity: 0.9, fog: false })
+      new THREE.LineDashedMaterial({ color: 0xf5b800, dashSize: 0.05, gapSize: 0.0375, transparent: true, opacity: 0.9, fog: false })
     );
     this.scene.add(this.sunPath);
 
-    this.northMarker = new THREE.Group();
-    this.scene.add(this.northMarker);
     this.buildGroundSun();
     this.scene.add(this.bestRings);
 
@@ -759,12 +775,9 @@ export class VehicleScene {
     const dir = new THREE.Vector3(sun.ux, sun.uz, -sun.uy).normalize();
     this.fillLight.position.set(-dir.x * 20, 18, -dir.z * 20);
     const up = sun.elevationDeg > 0;
-    const R = 26;
     this.sunLight.position.copy(dir.clone().multiplyScalar(40));
     this.sunLight.target.position.set(0, 0, 0);
     this.sunLight.visible = up;
-    this.sunMesh.visible = up;
-    this.sunMesh.position.copy(dir.clone().multiplyScalar(R));
 
     // Warmer, weaker light near the horizon.
     const el = Math.max(0, sun.elevationDeg);
@@ -778,8 +791,11 @@ export class VehicleScene {
     this.groundSun.visible = up && flat.lengthSq() > 1e-4 && this.view === 'top';
     if (flat.lengthSq() > 1e-4) {
       flat.normalize();
-      // Just outside the body on the sunny flank, inside the top-view frame.
-      const reach = Math.abs(flat.x) * (this.vehicle.dimensions.widthM / 2) + Math.abs(flat.z) * this.halfL + 1.0;
+      // Where the line from the centre towards the sun leaves the body, plus room for the rays:
+      // never more than GROUND_SUN_BAND past the body on either axis, which the top view fits.
+      const halfW = this.vehicle.dimensions.widthM / 2;
+      const exit = Math.min(Math.abs(flat.x) > 1e-6 ? halfW / Math.abs(flat.x) : Infinity, Math.abs(flat.z) > 1e-6 ? this.halfL / Math.abs(flat.z) : Infinity);
+      const reach = exit + GROUND_SUN_GAP;
       this.groundSun.position.copy(flat.clone().multiplyScalar(reach));
       this.groundSun.rotation.y = Math.atan2(flat.x, flat.z);
     }
@@ -791,25 +807,33 @@ export class VehicleScene {
     this.hemi.intensity = up ? 0.6 : 0.35;
     this.hemi.color.set(up ? 0xcfdcf2 : 0x3a4a7a);
 
-    // Sun path arc for the day.
-    const pts = sun.path.filter((p) => p[2] > -0.05).map((p) => new THREE.Vector3(p[0], p[2], -p[1]).normalize().multiplyScalar(R));
+    // Sun path arc for the day on a unit sphere; placeSky() scales it with the sun.
+    const pts = sun.path.filter((p) => p[2] > -0.05).map((p) => new THREE.Vector3(p[0], p[2], -p[1]).normalize());
     this.sunPath.geometry.dispose();
     this.sunPath.geometry = new THREE.BufferGeometry().setFromPoints(pts.length > 1 ? pts : [new THREE.Vector3(), new THREE.Vector3()]);
     this.sunPath.computeLineDistances();
-    this.sunPath.visible = pts.length > 1;
-
-    // North marker on the ground.
-    // The north label is drawn once and only moved afterwards.
-    if (!this.northLabel) {
-      this.northLabel = textSprite(this.opts.lang === 'ar' ? 'الشمال' : 'N', { size: 52, color: '#fbfcfe', bg: 'rgba(27,47,124,0.9)', overlay: false });
-      this.track(this.northLabel.material.map!);
-      this.track(this.northLabel.material);
-      this.northMarker.add(this.northLabel);
-    }
-    const b = (sun.northRelativeDeg * Math.PI) / 180;
-    const nDir = new THREE.Vector3(Math.sin(b), 0, -Math.cos(b));
-    this.northLabel.position.copy(nDir.multiplyScalar(this.vehicle.type === 'bus' ? 9 : 5.2)).setY(0.35);
+    this.hasSunPath = pts.length > 1;
+    this.placeSky();
     this.shadowsChanged();
+  }
+
+  /**
+   * The drawn sun. From outside it sits on a small dome around the vehicle, so the disc is in frame
+   * beside the side it lights (its day arc would cross the body, so it stays hidden there). From the
+   * seat the sun and its arc sit far off around the rider's head, so the disc shows through the
+   * right window. From above the ground marker says it.
+   */
+  private placeSky(): void {
+    const sun = this.lastSun;
+    const seat = this.view === 'seat';
+    const radius = seat ? SKY_DISTANCE : this.domeRadius;
+    const anchor = seat ? this.controls.target.clone() : this.domeCenter;
+    this.sunPath.position.copy(anchor);
+    this.sunPath.scale.setScalar(radius);
+    this.sunPath.visible = seat && this.hasSunPath;
+    this.sunMesh.visible = this.view !== 'top' && !!sun && sun.elevationDeg > 0;
+    this.sunMesh.scale.setScalar(seat ? 1 : (this.domeRadius * 0.075) / SKY_SUN_RADIUS);
+    if (sun) this.sunMesh.position.set(sun.ux, sun.uz, -sun.uy).normalize().multiplyScalar(radius).add(anchor);
   }
 
   setSelectedSeat(id: number | null): void {
@@ -894,7 +918,8 @@ export class VehicleScene {
       // The distance fits the whole vehicle into the frame, whatever the pane's shape.
       const side = this.lastSun && this.lastSun.elevationDeg > 0 && Math.abs(this.lastSun.ux) > 0.05 ? Math.sign(this.lastSun.ux) : 1;
       const { lengthM, widthM, heightM } = this.vehicle.dimensions;
-      const radius = Math.hypot(lengthM / 2, widthM / 2, heightM / 2);
+      // The vehicle and the sun-path dome around it.
+      const radius = Math.max(Math.hypot(lengthM / 2, widthM / 2, heightM / 2), this.domeRadius + c.target.distanceTo(this.domeCenter));
       const vfov = THREE.MathUtils.degToRad(this.camera.fov);
       const hfov = 2 * Math.atan(Math.tan(vfov / 2) * this.camera.aspect);
       const distance = (radius / Math.sin(Math.min(vfov, hfov) / 2)) * 1.02;
@@ -903,10 +928,21 @@ export class VehicleScene {
       c.maxDistance = Math.max(c.maxDistance, distance * 1.3);
     } else if (view === 'top') {
       this.camera.fov = 38;
-      c.minDistance = isBus ? 10 : 5;
-      c.maxDistance = isBus ? 34 : 16;
       c.target.set(0, 0.8, 0);
-      this.camera.position.set(0.001, isBus ? 22 : 10.6, isBus ? 3.5 : 2.1);
+      // Fit the body plus the band the ground sun can take around it, clear of the pane's label
+      // above and view switch below, whatever the pane's shape.
+      const halfX = this.vehicle.dimensions.widthM / 2 + GROUND_SUN_BAND;
+      const halfZ = this.halfL + GROUND_SUN_BAND;
+      const h = this.container.clientHeight || 400;
+      const tan = Math.tan(THREE.MathUtils.degToRad(this.camera.fov) / 2);
+      const tanV = tan * Math.max(0.5, (h - 2 * PANE_OVERLAY_PX) / h);
+      const tanH = tan * this.camera.aspect;
+      const dir = new THREE.Vector3(0.001, isBus ? 22 : 10.6, isBus ? 3.5 : 2.1).normalize();
+      // From the camera to the ground plane, less the target's height above it.
+      const distance = Math.max(halfZ / tanV, halfX / tanH) * 1.04 - c.target.y / dir.y;
+      this.camera.position.copy(c.target).addScaledVector(dir, distance);
+      c.minDistance = Math.min(isBus ? 10 : 5, distance * 0.5);
+      c.maxDistance = Math.max(isBus ? 34 : 16, distance * 1.3);
     } else {
       this.camera.fov = 80;
       const head = this.toThree(seat.position.x, seat.position.y, seat.position.z + 0.8);
@@ -924,6 +960,8 @@ export class VehicleScene {
     }
     this.camera.updateProjectionMatrix();
     c.update();
+    this.fittedAspect = this.camera.aspect;
+    this.placeSky();
     this.shadowsChanged();
   }
 
@@ -964,6 +1002,8 @@ export class VehicleScene {
     this.renderer.setSize(w, h, false);
     this.camera.aspect = w / h;
     this.camera.updateProjectionMatrix();
+    // A new pane shape (first real layout, a turned tablet): fit the framing again.
+    if (this.fittedAspect && Math.abs(this.camera.aspect / this.fittedAspect - 1) > 0.15 && this.view !== 'seat') this.setView(this.view);
     this.invalidate();
   }
 

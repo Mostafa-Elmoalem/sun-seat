@@ -25,7 +25,7 @@ export function ResultView({ onToast }: { onToast: (text: string) => void }) {
 
   return (
     <main className="result-grid" data-testid="results-screen">
-      <ResultBar from={from} to={to} departure={s.departure} vehicle={vehicle} verdict={verdict} onEdit={s.goToInput} onToast={onToast} lang={lang} />
+      <ResultBar from={from} to={to} departure={s.departure} verdict={verdict} onEdit={s.goToInput} onToast={onToast} lang={lang} />
 
       <VerdictCard verdict={verdict} vehicle={vehicle} weather={s.weather} selectedSeatId={s.selectedSeatId} onSelectSeat={s.selectSeat} lang={lang} />
 

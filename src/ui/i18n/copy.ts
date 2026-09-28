@@ -145,7 +145,8 @@ export const COPY = {
       none: 'مفيش شمس'
     } as Record<SunDirection, string>,
     routeFigure: 'الطريق والشمس',
-    routeCaption: (km: string, heading: string) => `${km} كم رايح ناحية ${heading}`,
+    routeCaption: (km: string, heading: string) => `${km} كم · اتجاه الطريق: ${heading}`,
+    modelCredit: 'مجسم الميكروباص مبني على «Toyota Hiace 1995» لـ elenaisakova248، متعدّل،',
     north: 'ش',
     source: {
       precomputed: 'طريق حقيقي من الخريطة',
@@ -311,7 +312,8 @@ export const COPY = {
       none: 'No sun'
     } as Record<SunDirection, string>,
     routeFigure: 'Road and sun',
-    routeCaption: (km: string, heading: string) => `${km} km heading ${heading}`,
+    routeCaption: (km: string, heading: string) => `${km} km · road heading ${heading}`,
+    modelCredit: 'The microbus model is based on "Toyota Hiace 1995" by elenaisakova248, modified,',
     north: 'N',
     source: {
       precomputed: 'Real road route from the map',

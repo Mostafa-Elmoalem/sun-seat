@@ -1,14 +1,7 @@
-import type { SeatExposure, Side, TripExposureVerdict, VehicleProfile } from '../../../core/types/vehicle.ts';
+import type { Side, TripExposureVerdict, VehicleProfile } from '../../../core/types/vehicle.ts';
+import { windowSeatSun } from '../../../app/result/verdict-model.ts';
 import { COPY, formatDuration, sideName, type AppLanguage } from '../../i18n/copy.ts';
 import { IconChevronDown, IconInfo } from '../../shared/Icons.tsx';
-
-/** Average window seat on one side: minutes of proper sun and of light sun. */
-function sideAverage(verdict: TripExposureVerdict, vehicle: VehicleProfile, side: Side): { strong: number; light: number } {
-  const bySeat = new Map(verdict.seatsExposure.map((e) => [e.seatId, e]));
-  const list = vehicle.seats.filter((s) => s.isWindow && s.side === side).map((s) => bySeat.get(s.id)).filter((e): e is SeatExposure => !!e);
-  const n = Math.max(1, list.length);
-  return { strong: list.reduce((a, e) => a + e.strongMinutes, 0) / n, light: list.reduce((a, e) => a + e.mildMinutes, 0) / n };
-}
 
 /** The working, folded away: each side's sun, how sure we are, and the method. */
 export function WorkingDetails({ verdict, vehicle, lang }: { verdict: TripExposureVerdict; vehicle: VehicleProfile; lang: AppLanguage }) {
@@ -29,7 +22,7 @@ export function WorkingDetails({ verdict, vehicle, lang }: { verdict: TripExposu
             <h3>{c.sidesTitle}</h3>
             <div className="sides">
               {(['left', 'right'] as const).map((side) => {
-                const { strong, light } = sideAverage(verdict, vehicle, side);
+                const { strong, light } = windowSeatSun(verdict, vehicle, side);
                 return (
                   <div key={side} className="side-row" data-testid={`side-${side}`}>
                     <span className="side-row-name">{side === 'left' ? c.driver : c.door}</span>

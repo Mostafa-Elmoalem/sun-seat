@@ -115,7 +115,11 @@ export function ResultStage(props: ResultStageProps) {
   ];
   const allSegments: Segment<Tab>[] = [{ id: 'seats', label: c.tabSeats, testId: 'tab-seats' }, ...sideSegments];
   const momentLabel = moment ? `${c.atTime(formatTime(moment.timeMs, lang))} · ${c.dir[moment.sunSide]}` : '';
-  const auto3d = !isLowBandwidth || allow3d;
+  const auto3d = allow3d || !isLowBandwidth;
+  // Decided once, when the 3D is first shown: a later dip in the network never tears a built scene down.
+  useEffect(() => {
+    if (vehicleVisible && auto3d && !allow3d) setAllow3d(true);
+  }, [vehicleVisible, auto3d, allow3d]);
 
   return (
     <section ref={stageRef} className="stage" aria-label={c.stageLabel} data-testid="stage">
@@ -124,9 +128,16 @@ export function ResultStage(props: ResultStageProps) {
       <div className="stage-panes">
         <div className="stage-col" hidden={!showSeats}>
           <div className="stage-pane pane-seats" data-testid="seat-plan">
-            <span className={`pane-label${chosen ? ' is-moment' : ''}`} data-testid="plan-state" data-view={chosen ? 'moment' : 'trip'}>
-              {chosen ? c.atTime(formatTime(chosen.timeMs, lang)) : c.wholeTrip}
-            </span>
+            <div className="pane-head">
+              <span className="pane-label" data-testid="plan-state" data-view={chosen ? 'moment' : 'trip'}>
+                {chosen ? c.atTime(formatTime(chosen.timeMs, lang)) : c.wholeTrip}
+              </span>
+              {chosen && (
+                <button type="button" className="btn btn-outline" onClick={() => onScrub(null)} aria-label={c.backToTrip} data-testid="ruler-reset">
+                  {c.wholeTrip}
+                </button>
+              )}
+            </div>
             <div className="plan-box">
               <SeatPlan vehicle={vehicle} verdict={verdict} step={chosen} selectedSeatId={props.selectedSeatId} onSelect={props.onSelectSeat} lang={lang} />
             </div>
@@ -140,9 +151,11 @@ export function ResultStage(props: ResultStageProps) {
         <div className="stage-col" hidden={!showSide}>
           {wide && <SegmentedControl segments={sideSegments} value={sidePane} onChange={choose} label={c.stageLabel} compact />}
           <div className={`stage-pane pane-${sidePane}`} data-testid={sidePane === 'vehicle' ? 'three-block' : 'route-figure'}>
-            <span className="pane-label is-moment" data-testid="moment-label">
-              {momentLabel}
-            </span>
+            <div className="pane-head">
+              <span className="pane-label" data-testid="moment-label">
+                {momentLabel}
+              </span>
+            </div>
             {(vehicleBuilt || vehicleVisible) && (
               <div className="pane-layer" hidden={!vehicleVisible}>
                 <ThreeBoundary fallback={<div className="three-poster">{c.threeFailed}</div>}>

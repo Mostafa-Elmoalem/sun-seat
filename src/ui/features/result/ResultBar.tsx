@@ -1,4 +1,4 @@
-import type { TripExposureVerdict, VehicleProfile } from '../../../core/types/vehicle.ts';
+import type { TripExposureVerdict } from '../../../core/types/vehicle.ts';
 import { COPY, verdictHeadline, type AppLanguage } from '../../i18n/copy.ts';
 import { formatDay, formatTime } from '../../format.ts';
 import { IconEdit, IconShare, IconTripArrow } from '../../shared/Icons.tsx';
@@ -8,7 +8,6 @@ export function ResultBar({
   from,
   to,
   departure,
-  vehicle,
   verdict,
   onEdit,
   onToast,
@@ -17,7 +16,6 @@ export function ResultBar({
   from: string;
   to: string;
   departure: Date;
-  vehicle: VehicleProfile;
   verdict: TripExposureVerdict;
   onEdit: () => void;
   onToast: (text: string) => void;
@@ -49,10 +47,10 @@ export function ResultBar({
       </button>
       <div className="trip-summary" data-testid="trip-summary">
         <p className="trip-summary-route">
-          {from} <IconTripArrow rtl={lang === 'ar'} /> {to}
+          <span>{from}</span> <IconTripArrow rtl={lang === 'ar'} /> <span>{to}</span>
         </p>
         <p className="trip-summary-time">
-          {formatDay(departure, lang)} · {formatTime(departure, lang)} · {vehicle.type === 'bus' ? c.bus : c.microbus}
+          <span>{formatDay(departure, lang)}</span> · <span>{formatTime(departure, lang)}</span>
         </p>
       </div>
       <button type="button" className="btn btn-outline" onClick={() => void share()} data-testid="share-btn">

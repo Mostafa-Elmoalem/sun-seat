@@ -1,9 +1,10 @@
-import { useMemo, type ReactElement } from 'react';
+import { useMemo, useRef, type ReactElement } from 'react';
 import type { DecodedRoute } from '../../../core/types/routes.ts';
 import type { TimelineStep, TripExposureVerdict } from '../../../core/types/vehicle.ts';
 import type { Place } from '../../../core/types/places.ts';
 import { COPY, compassName, type AppLanguage } from '../../i18n/copy.ts';
 import { IconInfo } from '../../shared/Icons.tsx';
+import { useElementSize } from '../../hooks/use-element-size.ts';
 
 /**
  * The route inked on the page's own graph paper, north up, with a protractor at
@@ -11,9 +12,8 @@ import { IconInfo } from '../../shared/Icons.tsx';
  * between them, which is the whole calculation in one figure.
  */
 
-const W = 340;
-const H = 250;
-const PAD = 34;
+/** Drawn at this size until the pane has been measured. */
+const FALLBACK = { width: 340, height: 250 };
 
 function shortName(p: Place, lang: AppLanguage): string {
   const name = lang === 'ar' ? p.nameAr : p.nameEn;
@@ -37,6 +37,14 @@ export function RouteFigure({
   lang: AppLanguage;
 }) {
   const c = COPY[lang];
+  const boxRef = useRef<HTMLDivElement>(null);
+  const measured = useElementSize(boxRef);
+  // The drawing takes the pane's own shape, so a tall tablet pane is filled, not letterboxed.
+  const W = Math.round(measured.width > 120 ? measured.width : FALLBACK.width);
+  const H = Math.round(measured.height > 120 ? measured.height : FALLBACK.height);
+  const R = Math.min(60, Math.max(40, Math.min(W, H) * 0.145));
+  // Room for the protractor and its sun around any point of the road.
+  const PAD = R + 32;
 
   const geo = useMemo(() => {
     const pts = route.coordinates;
@@ -55,7 +63,7 @@ export function RouteFigure({
     const project = (lat: number, lng: number): [number, number] => [offX + (lng * k - minX) * scale, offY + (-lat - minY) * scale];
     const d = pts.map((p, i) => `${i === 0 ? 'M' : 'L'}${project(p[0], p[1]).map((v) => v.toFixed(1)).join(' ')}`).join(' ');
     return { project, d };
-  }, [route]);
+  }, [route, W, H, PAD]);
 
   const focus = step;
 
@@ -67,14 +75,13 @@ export function RouteFigure({
   let protractor: ReactElement | null = null;
   if (focus) {
     const [fx, fy] = geo.project(focus.location.lat, focus.location.lng);
-    const R = 40;
     const toXY = (bearing: number, r: number): [number, number] => {
       const b = (bearing * Math.PI) / 180;
       return [fx + Math.sin(b) * r, fy - Math.cos(b) * r];
     };
     const [hx, hy] = toXY(focus.headingDeg, R + 6);
     const sunUp = !focus.isNight;
-    const [ox, oy] = toXY(focus.solarAzimuthDeg, R + 26);
+    const [ox, oy] = toXY(focus.solarAzimuthDeg, R + 20);
     const [ix, iy] = toXY(focus.solarAzimuthDeg, R - 2);
     const rel = focus.relativeAngleDeg > 180 ? focus.relativeAngleDeg - 360 : focus.relativeAngleDeg;
     const arcR = R * 0.62;
@@ -115,7 +122,7 @@ export function RouteFigure({
 
   return (
     <>
-      <div className="route-box">
+      <div className="route-box" ref={boxRef}>
         <svg
           viewBox={`0 0 ${W} ${H}`}
           preserveAspectRatio="xMidYMid meet"

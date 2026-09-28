@@ -34,7 +34,7 @@ function sunStateFor(step: TimelineStep): SunState {
     const v = calculateSunVector(pos.azimuth, pos.elevation, step.headingDeg);
     path.push([v.ux, v.uy, v.uz]);
   }
-  return { ux, uy, uz, elevationDeg: step.solarElevationDeg, northRelativeDeg: (360 - step.headingDeg) % 360, path };
+  return { ux, uy, uz, elevationDeg: step.solarElevationDeg, path };
 }
 
 /**
@@ -82,7 +82,7 @@ export default function VehicleCanvas({ vehicle, verdict, step, selectedSeatId, 
         // Let the answer paint first, then build the scene.
         await new Promise<void>((resolve) => requestAnimationFrame(() => setTimeout(resolve, 0)));
         if (cancelled) return;
-        const scene = new VehicleScene(slot, vehicle, { lowEnd: wantsLightScene(), lang, shell, destination: destinationName ?? null });
+        const scene = new VehicleScene(slot, vehicle, { lowEnd: wantsLightScene(), shell, destination: destinationName ?? null });
         sceneRef.current = scene;
         await scene.prepare();
         if (cancelled) return;
@@ -96,7 +96,7 @@ export default function VehicleCanvas({ vehicle, verdict, step, selectedSeatId, 
       sceneRef.current?.dispose();
       sceneRef.current = null;
     };
-  }, [vehicle, lang, destinationName]);
+  }, [vehicle, destinationName]);
 
   useEffect(() => {
     if (step) sceneRef.current?.setSun(sunStateFor(step));

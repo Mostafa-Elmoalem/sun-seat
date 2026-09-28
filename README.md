@@ -8,10 +8,10 @@ Arabic first (Egyptian colloquial, RTL), English toggle. Works on weak data and 
 
 1. **Road.** The real road route between the two places (OpenStreetMap). 150 routes between the main terminals, cities and universities ship with the app; any other trip is routed live with OSRM and cached on the phone. If no route can be fetched, a straight line is used and clearly labeled as approximate.
 2. **Sun.** The NOAA solar position algorithm runs on the phone for every minute of the trip, in Africa/Cairo time (DST aware). No API.
-3. **Seats.** Each passenger is sampled at four body points (lap, both shoulders, head). A ray is cast from each point towards the sun: if it leaves the cabin through a window, that point is in sun; if it hits the roof, a body panel, a seatback or a neighbor, it is in shade. Glass transmission falls off at grazing angles (Fresnel), and the sun near the horizon is faded out. There are no fudge factors: the high noon case, windshield glare and the shelter of middle seats all come from the same geometry.
-4. **Verdict.** The average sun minutes on each side's window seats decide the side (`src/core/exposure/honest-rules.ts`). The trip is re-run with a 30 minute earlier and later departure and with slower and faster traffic to report how stable the answer is.
+3. **Seats.** Each passenger is three boxes (thighs, torso, head) with six skin points (lap, both shoulders, face, nape, upper back). A ray is cast from each point towards the sun: if it leaves the cabin through a window (the windshield is raked, as on the real van), that point is in sun; if it hits the roof, a body panel, the dashboard, a backrest, a headrest, a neighbor or the passenger's own body, it is in shade. Glass transmission falls off at grazing angles (Fresnel), and the sun near the horizon is faded out. Every seat gets minutes of proper sun and of light sun. The back bench sits against the rear door with a short backrest, so sun from behind lands on those riders' backs.
+4. **Verdict.** The average sun on each side's window seats decides the side (`src/core/exposure/honest-rules.ts`); a separate check says when the back bench or the front row takes clearly more sun, whatever the side. Seats are ranked by one score (the dose plus a share of every noticeable minute), rounded once, so the order can never put a sunnier seat above a shadier one. The trip is re-run with a 30 minute earlier and later departure and with slower and faster traffic to report how stable the answer is.
 
-The 3D view (three.js, loaded only on request) is built from the same vehicle profile the engine ray-traces, and the sun is a directional light with shadow maps, so the sun patches on the seats are drawn by the GPU from the same windows the engine used.
+The 3D view is the egypt-microbus package (`packages/egypt-microbus`), built from the same spec the engine reads, so the sun patches the GPU draws come through the same windows the engine used.
 
 ## Places
 
@@ -27,17 +27,30 @@ GPS is supported; a GPS point is never stored, and share links round it to about
 
 ## Project layout
 
+Layers depend inward only: `ui` uses `app`, `app` uses `core` and `adapters`, and `core` depends on nothing.
+
 ```
-src/core/        pure TypeScript, no DOM
-  astronomy/     NOAA sun position, Cairo time zone
-  exposure/      seat ray tracing, trip calculator, honest verdict rules
-  geometry/      bearings, polyline codec, Douglas-Peucker simplification
-src/adapters/    places search, routing (precomputed, live, cached, straight), weather, PWA
-src/data/        hubs, vehicle profiles (HiAce 14-seat microbus, 49-seat coach), route index
-src/ui/          React UI, "geography notebook" design, lazy three.js scene
-scripts/         data pipeline: build-places.ts (OSM gazetteer), precompute-routes.ts (OSRM routes)
-public/          service worker, fonts, icons, precomputed routes, gazetteer
-tests/unit/      physics ground truth, data integrity, adapters, share links, copy
+src/core/          domain: pure TypeScript, no DOM, no framework
+  astronomy/       NOAA sun position, Cairo time zone
+  exposure/        seat ray tracing, trip calculator, honest verdict rules
+  geometry/        bearings, polyline codec, Douglas-Peucker simplification
+src/adapters/      infrastructure: places search, routing (precomputed, live, cached, straight), weather, PWA
+src/data/          hubs, vehicle profiles (the microbus comes from the package spec), route index
+src/app/           application layer, framework free
+  trip/            the store, the calculate-trip use case, share links, recents, departure rules, GPS
+  result/          presenters: verdict as data, per-seat display state, time bar cells, focus moment
+src/ui/            presentation (React)
+  features/        trip-form, result (verdict, stage, seat plan, time bar, road, working), vehicle-3d
+  shared/          icons, segmented control
+  hooks/           store binding, media query, playback, idle, network, element width
+  i18n/            the copy deck and the verdict sentence
+  styles/          tokens, base, controls, page, form, result
+packages/
+  egypt-microbus/  the 3D microbus as an isolated package (see its README)
+src/lab/           development-only model lab (model-lab.html), not in the production build
+scripts/           data pipeline and the precomputed microbus shell
+public/            service worker, fonts, icons, precomputed routes, gazetteer, microbus shell
+tests/unit/        physics ground truth, app layer, microbus package, data integrity, adapters, copy
 ```
 
 ## Commands
@@ -53,13 +66,15 @@ npm run preview        # serve the production build
 node --experimental-strip-types scripts/build-places.ts --fetch    # refresh the OSM gazetteer
 node --experimental-strip-types scripts/precompute-routes.ts       # fetch missing hub routes
 node --experimental-strip-types scripts/precompute-routes.ts --force
+node scripts/build-microbus-shell.mts                              # recut the microbus body after a spec change
 ```
 
 ## Budgets
 
-- Initial JS about 105 KB gzip, CSS about 5 KB, Arabic UI font 23 KB.
-- The 3D chunk (about 156 KB gzip) loads only when the rider taps it.
-- A 4 hour microbus trip with the four sensitivity passes computes in well under 100 ms on a laptop.
+- Initial JS about 110 KB gzip, CSS about 5 KB, Arabic UI font 23 KB.
+- The 3D chunk (about 172 KB gzip) and the microbus shell (64 KB gzip) are fetched while the rider reads the answer, never on Save-Data or 2G; the CSG code (34 KB gzip) loads only if the shell file is missing.
+- The full Ramses to Alexandria verdict, with the four sensitivity passes, computes in about 11 ms on a laptop.
+- With a 4x CPU slowdown on a phone viewport: the 3D opens in about 2.2 s and orbits at about 60 fps (the scene redraws its shadows only when the sun or the view changes, merges static parts to a few dozen draw calls, and phones get a lighter material set).
 
 ## Deployment and risks
 
