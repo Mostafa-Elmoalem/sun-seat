@@ -146,6 +146,7 @@
   border: 2px solid var(--pencil-light);
   background: var(--paper);
   transition: border-color 160ms var(--ease-out);
+  cursor: pointer;
 }
 
 .ink-input:hover,
@@ -157,6 +158,8 @@
   font-size: 12px;
   font-weight: 600;
   color: var(--graphite);
+  pointer-events: none;
+  user-select: none;
 }
 
 .ink-input-value {
@@ -164,6 +167,8 @@
   font-weight: 600;
   color: var(--ink);
   white-space: nowrap;
+  pointer-events: none;
+  user-select: none;
 }
 
 .ink-input input {
@@ -172,6 +177,23 @@
   opacity: 0;
   width: 100%;
   height: 100%;
+  cursor: pointer;
+  z-index: 1;
+  box-sizing: border-box;
+}
+
+/* Expand the native WebKit picker indicator to cover the entire button area */
+.ink-input input::-webkit-calendar-picker-indicator {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  padding: 0;
+  opacity: 0;
   cursor: pointer;
 }
 

@@ -61,6 +61,16 @@ export function TripForm() {
   const shiftFromNow = (minutes: number) => s.setDeparture(fromNow(minutes));
   const tomorrow = () => s.setDeparture(tomorrowSameTime(s.departure));
 
+  const openPicker = (e: React.MouseEvent<HTMLInputElement> | React.KeyboardEvent<HTMLInputElement>) => {
+    try {
+      if ('showPicker' in e.currentTarget && typeof e.currentTarget.showPicker === 'function') {
+        e.currentTarget.showPicker();
+      }
+    } catch {
+      // Fallback: browser either opens natively or ignores if already showing
+    }
+  };
+
   const errorText = s.error === 'MISSING' ? c.errMissing : s.error === 'SAME' ? c.errSame : null;
 
   return (
@@ -141,6 +151,12 @@ export function TripForm() {
                 const next = fromCairo(e.target.value, parts.time);
                 if (next) s.setDeparture(next);
               }}
+              onClick={openPicker}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                  openPicker(e);
+                }
+              }}
               data-testid="date-input"
               aria-label={c.date}
             />
@@ -154,6 +170,12 @@ export function TripForm() {
               onChange={(e) => {
                 const next = fromCairo(parts.date, e.target.value);
                 if (next) s.setDeparture(next);
+              }}
+              onClick={openPicker}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                  openPicker(e);
+                }
               }}
               data-testid="time-input"
               aria-label={c.time}
