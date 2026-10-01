@@ -96,7 +96,6 @@ export const tripStore = createStore<TripState>((set, get) => ({
     const departure = get().isNow ? roundToFiveMinutes(new Date()) : get().departure;
     const wasOnForm = get().screen === 'input';
     set({ calculating: true, error: null, departure });
-
     const { route, verdict } = await calculateTrip({ origin, destination, vehicleId, departure });
     const recents = addRecent(get().recents, { origin, destination, vehicleId });
     saveRecents(recents);

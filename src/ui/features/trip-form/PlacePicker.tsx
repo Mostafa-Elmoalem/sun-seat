@@ -45,6 +45,8 @@ export function PlacePicker({ field, lang, recentPlaces, onPick, onClose }: Plac
   const [gps, setGps] = useState<'idle' | 'locating' | 'denied'>('idle');
   const isOffline = typeof navigator !== 'undefined' && navigator.onLine === false;
 
+  const panelRef = useRef<HTMLDivElement>(null);
+
   useEffect(() => {
     inputRef.current?.focus();
     let alive = true;
@@ -57,10 +59,22 @@ export function PlacePicker({ field, lang, recentPlaces, onPick, onClose }: Plac
     document.addEventListener('keydown', onKey);
     const prevOverflow = document.body.style.overflow;
     document.body.style.overflow = 'hidden';
+
+    const onDocPointerDown = (e: PointerEvent | MouseEvent) => {
+      if (panelRef.current && !panelRef.current.contains(e.target as Node)) {
+        onClose();
+      }
+    };
+    const timer = setTimeout(() => {
+      document.addEventListener('pointerdown', onDocPointerDown);
+    }, 60);
+
     return () => {
       alive = false;
       document.removeEventListener('keydown', onKey);
       document.body.style.overflow = prevOverflow;
+      clearTimeout(timer);
+      document.removeEventListener('pointerdown', onDocPointerDown);
     };
   }, [onClose]);
 
@@ -117,8 +131,19 @@ export function PlacePicker({ field, lang, recentPlaces, onPick, onClose }: Plac
   const nothingFound = hasQuery && local.length === 0 && onlineExtra.length === 0 && online.status !== 'loading';
 
   return (
-    <div className="sheet" role="dialog" aria-modal="true" aria-label={field === 'from' ? c.from : c.to}>
-      <div className="sheet-panel">
+    <div
+      className="sheet"
+      role="dialog"
+      aria-modal="true"
+      aria-label={field === 'from' ? c.from : c.to}
+    >
+      <div
+        className="sheet-backdrop"
+        onPointerDown={onClose}
+        onClick={onClose}
+        aria-hidden="true"
+      />
+      <div ref={panelRef} className="sheet-panel">
         <div className="sheet-head">
           <button type="button" className="icon-btn" onClick={onClose} aria-label={c.back}>
             <IconBack />

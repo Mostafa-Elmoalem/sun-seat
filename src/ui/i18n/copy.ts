@@ -35,7 +35,21 @@ export const COPY = {
     bus: 'أتوبيس',
     busSeats: '49 كرسي',
     cta: 'اعرف أقعد فين',
-    ctaBusy: 'بنحسب الشمس والطريق',
+    ctaBusy: 'بنحسب الشمس والطريق...',
+    loaderTitle: 'بنحسبلك الضل التمام',
+    loaderQuotes: [
+      'بنحسب لفة العربية مع كل ملف في السكة...',
+      'بنقيس زاوية الشمس بالمسطرة والمنقلة...',
+      'بنشوفلك كرسي بعيد عن صهد الشباك وعين السواق...',
+      'بنرمي أشعة الشمس على الشبابيك ونشوف الضل رايح فين...',
+      'عشان تركب مرتاح من غير ما الشمس تاكلك...',
+      'ثواني ومسار الضل هيكون جاهز بالمللي...'
+    ],
+    loaderSteps: [
+      'رسم ملفات الطريق',
+      'حساب زاوية وميل الشمس',
+      'توزيع الضل على الكراسي'
+    ],
     recents: 'مشاويرك الأخيرة',
     errMissing: 'اختار رايح منين ورايح فين',
     errSame: 'المكانين واحد، اختار مكان وصول تاني',
@@ -152,7 +166,7 @@ export const COPY = {
       precomputed: 'طريق حقيقي من الخريطة',
       live: 'طريق حقيقي من الخريطة',
       cached: 'طريق حقيقي محفوظ على موبايلك',
-      straight: 'مسار تقريبي (خط مستقيم) لأن النت مش متاح'
+      straight: 'مسار تقريبي (خط مستقيم) لتعذر تحميل تفاصيل مسار الطريق'
     } as Record<RouteSource, string>,
     compass: ['الشمال', 'الشمال الشرقي', 'الشرق', 'الجنوب الشرقي', 'الجنوب', 'الجنوب الغربي', 'الغرب', 'الشمال الغربي'],
     threeTitle: 'شوفها من جوه العربية',
@@ -204,7 +218,20 @@ export const COPY = {
     bus: 'Coach',
     busSeats: '49 seats',
     cta: 'Show me where to sit',
-    ctaBusy: 'Working out sun and road',
+    ctaBusy: 'Working out sun and road...',
+    loaderTitle: 'Calculating the optimal shade',
+    loaderQuotes: [
+      'Tracking road turns and heading changes...',
+      'Measuring sun angle and elevation with NOAA...',
+      'Ray-tracing shadows through the vehicle cabin...',
+      'Finding the coolest seat away from glare...',
+      'Almost done with the shade calculations...'
+    ],
+    loaderSteps: [
+      'Tracing road bends',
+      'Computing sun angles',
+      'Mapping window shade'
+    ],
     recents: 'Recent trips',
     errMissing: 'Pick where you are going from and to',
     errSame: 'Both places are the same, pick another destination',
@@ -319,7 +346,7 @@ export const COPY = {
       precomputed: 'Real road route from the map',
       live: 'Real road route from the map',
       cached: 'Real road route saved on your phone',
-      straight: 'Approximate straight line, no connection right now'
+      straight: 'Approximate straight line (road details unavailable)'
     } as Record<RouteSource, string>,
     compass: ['north', 'north east', 'east', 'south east', 'south', 'south west', 'west', 'north west'],
     threeTitle: 'See it inside the vehicle',

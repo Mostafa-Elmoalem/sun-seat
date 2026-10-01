@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import type { Place } from '../../../core/types/places.ts';
 import { useTripStore } from '../../hooks/use-trip-store.ts';
 import { fromNow, tomorrowSameTime } from '../../../app/trip/departure.ts';
@@ -6,7 +6,7 @@ import { recentPlaces as distinctRecentPlaces } from '../../../app/trip/recents.
 import { COPY, GPS_NAMING, type AppLanguage } from '../../i18n/copy.ts';
 import { cairoParts, fromCairo, formatDay, formatTime } from '../../format.ts';
 import { PlacePicker } from './PlacePicker.tsx';
-import { BusSilhouette, IconInfo, IconLocate, IconSwap, IconTripArrow, MicrobusSilhouette } from '../../shared/Icons.tsx';
+import { BusSilhouette, IconInfo, IconLocate, IconSwap, IconTripArrow, MicrobusSilhouette, SunDot } from '../../shared/Icons.tsx';
 import { locateMe } from '../../../app/trip/locate-me.ts';
 
 function PlaceLine({
@@ -70,6 +70,19 @@ export function TripForm() {
       // Fallback: browser either opens natively or ignores if already showing
     }
   };
+
+  const [hintIndex, setHintIndex] = useState(0);
+
+  useEffect(() => {
+    if (!s.calculating) {
+      setHintIndex(0);
+      return;
+    }
+    const timer = setInterval(() => {
+      setHintIndex((i) => (i + 1) % c.loaderQuotes.length);
+    }, 1500);
+    return () => clearInterval(timer);
+  }, [s.calculating, c.loaderQuotes.length]);
 
   const errorText = s.error === 'MISSING' ? c.errMissing : s.error === 'SAME' ? c.errSame : null;
 
@@ -234,13 +247,32 @@ export function TripForm() {
 
       <button
         type="button"
-        className="cta"
+        className={`cta${s.calculating ? ' is-calculating' : ''}`}
         disabled={s.calculating}
         onClick={() => void s.calculate()}
         data-testid="calculate-btn"
       >
-        {s.calculating ? c.ctaBusy : c.cta}
+        {s.calculating ? (
+          <span className="cta-calculating-content">
+            <span className="cta-mini-vehicle">
+              {s.vehicleId === 'bus-49' ? <BusSilhouette /> : <MicrobusSilhouette />}
+            </span>
+            <span className="cta-sun-icon">
+              <SunDot size={18} />
+            </span>
+            <span>{c.ctaBusy}</span>
+          </span>
+        ) : (
+          c.cta
+        )}
+        {s.calculating && <span className="cta-progress-line" />}
       </button>
+
+      {s.calculating && (
+        <p className="cta-calc-hint" aria-live="polite">
+          ☀️ {c.loaderQuotes[hintIndex]}
+        </p>
+      )}
 
       {picker && (
         <PlacePicker

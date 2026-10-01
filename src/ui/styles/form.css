@@ -279,3 +279,82 @@
   flex-direction: column;
   gap: 6px;
 }
+
+/* --- Simple & Delightful Inline Calculating State --- */
+
+.cta.is-calculating {
+  position: relative;
+  overflow: hidden;
+  background: var(--ink);
+  cursor: wait;
+}
+
+.cta-calculating-content {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  width: 100%;
+}
+
+.cta-mini-vehicle {
+  width: 36px;
+  height: 20px;
+  display: inline-flex;
+  align-items: center;
+  color: #fff;
+  animation: ctaVehicleBounce 0.38s ease-in-out infinite alternate;
+}
+
+.cta-mini-vehicle svg {
+  width: 100%;
+  height: 100%;
+}
+
+.cta-sun-icon {
+  display: inline-flex;
+  align-items: center;
+  animation: ctaSunPulse 1.2s ease-in-out infinite alternate;
+}
+
+.cta-progress-line {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 3.5px;
+  background: linear-gradient(90deg, transparent, var(--highlighter), #fff, var(--highlighter), transparent);
+  background-size: 200% 100%;
+  animation: ctaProgressSlide 1.2s linear infinite;
+}
+
+.cta-calc-hint {
+  text-align: center;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--ink);
+  margin-top: -6px;
+  margin-bottom: 2px;
+  animation: ctaHintFade 250ms var(--ease-out);
+  letter-spacing: -0.01em;
+}
+
+@keyframes ctaVehicleBounce {
+  from { transform: translateY(0); }
+  to { transform: translateY(-2.5px); }
+}
+
+@keyframes ctaSunPulse {
+  from { transform: scale(0.9) rotate(0deg); opacity: 0.85; }
+  to { transform: scale(1.15) rotate(15deg); opacity: 1; }
+}
+
+@keyframes ctaProgressSlide {
+  0% { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+
+@keyframes ctaHintFade {
+  from { opacity: 0; transform: translateY(4px); }
+  to { opacity: 1; transform: translateY(0); }
+}
