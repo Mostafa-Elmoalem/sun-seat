@@ -166,8 +166,10 @@ export const COPY = {
       precomputed: 'طريق حقيقي من الخريطة',
       live: 'طريق حقيقي من الخريطة',
       cached: 'طريق حقيقي محفوظ على موبايلك',
-      straight: 'مسار تقريبي (خط مستقيم) لتعذر تحميل تفاصيل مسار الطريق'
-    } as Record<RouteSource, string>,
+      straight: 'مسار تقريبي (خط مستقيم)',
+      straightOffline: 'مسار تقريبي (خط مستقيم) لعدم توفر اتصال بالإنترنت',
+      straightFailed: 'مسار تقريبي (خط مستقيم) لتعذر تحميل تفاصيل مسار الطريق'
+    } as Record<RouteSource | 'straightOffline' | 'straightFailed', string>,
     compass: ['الشمال', 'الشمال الشرقي', 'الشرق', 'الجنوب الشرقي', 'الجنوب', 'الجنوب الغربي', 'الغرب', 'الشمال الغربي'],
     threeTitle: 'شوفها من جوه العربية',
     threeLoad: 'افتح العربية 3D',
@@ -346,8 +348,10 @@ export const COPY = {
       precomputed: 'Real road route from the map',
       live: 'Real road route from the map',
       cached: 'Real road route saved on your phone',
-      straight: 'Approximate straight line (road details unavailable)'
-    } as Record<RouteSource, string>,
+      straight: 'Approximate straight line',
+      straightOffline: 'Approximate straight line because you are offline',
+      straightFailed: 'Approximate straight line (road details could not be loaded)'
+    } as Record<RouteSource | 'straightOffline' | 'straightFailed', string>,
     compass: ['north', 'north east', 'east', 'south east', 'south', 'south west', 'west', 'north west'],
     threeTitle: 'See it inside the vehicle',
     threeLoad: 'Open the 3D view',

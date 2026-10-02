@@ -71,7 +71,20 @@ describe('routes repository', () => {
     const r = await repo.getRoute(point(30.5, 31.0), point(30.9, 31.3));
     expect(r.source).toBe('straight');
     expect(r.isApproximate).toBe(true);
+    expect(r.approximateReason).toBe('offline');
     expect(r.segments.length).toBeGreaterThan(0);
+  });
+
+  it('falls back to straight line with route_failed when online but router fails', async () => {
+    const repo = new RoutesRepository({
+      fetchImpl: (async () => jsonResponse({}, false)) as unknown as typeof fetch,
+      storage: null,
+      isOnline: () => true
+    });
+    const r = await repo.getRoute(point(30.5, 31.0), point(30.9, 31.3));
+    expect(r.source).toBe('straight');
+    expect(r.isApproximate).toBe(true);
+    expect(r.approximateReason).toBe('route_failed');
   });
 
   it('simplifies without losing the ends or real turns', () => {

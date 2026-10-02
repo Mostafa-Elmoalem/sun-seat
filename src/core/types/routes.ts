@@ -33,6 +33,7 @@ export interface DecodedRoute {
   totalDurationMin: number;
   source: RouteSource;
   isApproximate: boolean;
+  approximateReason?: 'offline' | 'route_failed';
   coordinates: [number, number][];
   segments: RouteSegment[];
 }

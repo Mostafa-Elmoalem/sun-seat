@@ -19,6 +19,24 @@
   margin-top: auto;
 }
 
+.trip-form-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.trip-form-col {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.trip-form-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
 .section-label {
   font-size: 13px;
   font-weight: 600;
@@ -358,3 +376,49 @@
   from { opacity: 0; transform: translateY(4px); }
   to { opacity: 1; transform: translateY(0); }
 }
+
+@media (min-width: 760px) {
+  .intro {
+    font-size: 16px;
+    line-height: 1.7;
+    max-width: 62ch;
+  }
+
+  .trip-form {
+    margin-top: 6px;
+    gap: 22px;
+  }
+
+  .trip-form-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    column-gap: 36px;
+    row-gap: 20px;
+    align-items: start;
+  }
+
+  .trip-form-col {
+    gap: 20px;
+  }
+
+  .trip-form-actions {
+    margin-top: 10px;
+    align-items: center;
+  }
+
+  .trip-form-actions .cta,
+  .trip-form-actions .form-error,
+  .trip-form-actions .cta-calc-hint {
+    max-width: 480px;
+    width: 100%;
+  }
+
+  .trip-form-actions .form-error {
+    justify-content: center;
+  }
+
+  .trip-form-actions .cta-calc-hint {
+    text-align: center;
+  }
+}
+

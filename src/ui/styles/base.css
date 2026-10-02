@@ -89,6 +89,11 @@ input::placeholder {
   stroke-linejoin: round;
 }
 
+.icon.icon-solid {
+  stroke: none;
+  fill: currentColor;
+}
+
 /* The back arrow points where the reader came from: right in Arabic, left in English. */
 [dir='ltr'] .icon-back {
   transform: scaleX(-1);

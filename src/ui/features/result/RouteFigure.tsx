@@ -120,6 +120,13 @@ export function RouteFigure({
     );
   }
 
+  const sourceLabel =
+    route.source === 'straight'
+      ? route.approximateReason === 'offline'
+        ? c.source.straightOffline
+        : c.source.straightFailed
+      : c.source[route.source];
+
   return (
     <>
       <div className="route-box" ref={boxRef}>
@@ -164,7 +171,7 @@ export function RouteFigure({
       </div>
       <p className={`route-caption${route.isApproximate ? ' is-approx' : ''}`} data-testid="route-source" data-source={route.source}>
         <IconInfo />
-        {c.source[route.source]} · {c.routeCaption(route.totalDistanceKm.toFixed(0), compassName(verdict.meanHeadingDeg, lang))}
+        {sourceLabel} · {c.routeCaption(route.totalDistanceKm.toFixed(0), compassName(verdict.meanHeadingDeg, lang))}
       </p>
     </>
   );

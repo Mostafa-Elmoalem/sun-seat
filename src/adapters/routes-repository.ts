@@ -68,7 +68,8 @@ export function decodeRoute(
   encodedPolyline: string,
   distanceKm: number,
   durationMin: number,
-  source: RouteSource
+  source: RouteSource,
+  approximateReason?: 'offline' | 'route_failed'
 ): DecodedRoute {
   const coordinates = decodePolyline(encodedPolyline);
   const segments = buildSegments(coordinates, durationMin);
@@ -80,6 +81,7 @@ export function decodeRoute(
     totalDurationMin: durationMin,
     source,
     isApproximate: source === 'straight',
+    ...(approximateReason ? { approximateReason } : {}),
     coordinates,
     segments
   };
@@ -214,7 +216,8 @@ export class RoutesRepository {
         origin.location.lng + (dest.location.lng - origin.location.lng) * f
       ]);
     }
-    return decodeRoute(coordKey(origin, dest), encodePolyline(coords), km * 1.3, durationMin, 'straight');
+    const approximateReason = this.isOnline() ? 'route_failed' : 'offline';
+    return decodeRoute(coordKey(origin, dest), encodePolyline(coords), km * 1.3, durationMin, 'straight', approximateReason);
   }
 }
 

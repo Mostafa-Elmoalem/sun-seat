@@ -109,170 +109,178 @@ export function TripForm() {
         </section>
       )}
 
-      <section className="places" aria-label={`${c.from} / ${c.to}`}>
-        <PlaceLine
-          tag={c.from}
-          place={s.origin}
-          placeholder={c.fromPlaceholder}
-          lang={s.lang}
-          invalid={s.error !== null && !s.origin}
-          onOpen={() => setPicker('from')}
-          testId="origin-field"
-        />
-        <PlaceLine
-          tag={c.to}
-          place={s.destination}
-          placeholder={c.toPlaceholder}
-          lang={s.lang}
-          invalid={s.error === 'SAME' || (s.error !== null && !s.destination)}
-          onOpen={() => setPicker('to')}
-          testId="destination-field"
-        />
+      <div className="trip-form-grid">
+        <div className="trip-form-col">
+          <section className="places" aria-label={`${c.from} / ${c.to}`}>
+            <PlaceLine
+              tag={c.from}
+              place={s.origin}
+              placeholder={c.fromPlaceholder}
+              lang={s.lang}
+              invalid={s.error !== null && !s.origin}
+              onOpen={() => setPicker('from')}
+              testId="origin-field"
+            />
+            <PlaceLine
+              tag={c.to}
+              place={s.destination}
+              placeholder={c.toPlaceholder}
+              lang={s.lang}
+              invalid={s.error === 'SAME' || (s.error !== null && !s.destination)}
+              onOpen={() => setPicker('to')}
+              testId="destination-field"
+            />
+            <button
+              type="button"
+              className="swap-btn"
+              aria-label={c.swap}
+              onClick={() => {
+                s.swap();
+                setSwapTurns((t) => t + 1);
+              }}
+              style={{ rotate: `${swapTurns * 180}deg` }}
+              data-testid="swap-btn"
+            >
+              <IconSwap />
+            </button>
+          </section>
+
+          {s.origin?.kind !== 'gps' && (
+            <button type="button" className="btn btn-outline locate-btn" onClick={useMyLocation} disabled={gps === 'locating'} data-testid="locate-btn">
+              <IconLocate />
+              {gps === 'locating' ? c.locating : c.useMyLocation}
+            </button>
+          )}
+          {gps === 'denied' && <p className="locate-error" role="alert">{c.gpsDenied}</p>}
+        </div>
+
+        <div className="trip-form-col">
+          <section className="date-line" aria-label={c.when}>
+            <p className="section-label">{c.when}</p>
+            <div className="date-row">
+              <label className="ink-input">
+                <span className="ink-input-label">{c.date}</span>
+                <span className="ink-input-value">{formatDay(s.departure, s.lang)}</span>
+                <input
+                  type="date"
+                  value={parts.date}
+                  onChange={(e) => {
+                    const next = fromCairo(e.target.value, parts.time);
+                    if (next) s.setDeparture(next);
+                  }}
+                  onClick={openPicker}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' || e.key === ' ') {
+                      openPicker(e);
+                    }
+                  }}
+                  data-testid="date-input"
+                  aria-label={c.date}
+                />
+              </label>
+              <label className="ink-input">
+                <span className="ink-input-label">{c.time}</span>
+                <span className="ink-input-value">{formatTime(s.departure, s.lang)}</span>
+                <input
+                  type="time"
+                  value={parts.time}
+                  onChange={(e) => {
+                    const next = fromCairo(parts.date, e.target.value);
+                    if (next) s.setDeparture(next);
+                  }}
+                  onClick={openPicker}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' || e.key === ' ') {
+                      openPicker(e);
+                    }
+                  }}
+                  data-testid="time-input"
+                  aria-label={c.time}
+                />
+              </label>
+            </div>
+            <div className="pill-grid">
+              <button type="button" className="pill" aria-pressed={s.isNow} onClick={s.setNow} data-testid="time-now">
+                {c.now}
+              </button>
+              <button type="button" className="pill" aria-pressed={false} onClick={() => shiftFromNow(30)} data-testid="time-plus-30">
+                {c.in30}
+              </button>
+              <button type="button" className="pill" aria-pressed={false} onClick={tomorrow} data-testid="time-tomorrow">
+                {c.tomorrow}
+              </button>
+            </div>
+          </section>
+
+          <section aria-label={c.vehicle}>
+            <p className="section-label">{c.vehicle}</p>
+            <div className="vehicle-choice" role="radiogroup" aria-label={c.vehicle}>
+              <button
+                type="button"
+                role="radio"
+                aria-checked={s.vehicleId === 'microbus-14'}
+                className="vehicle-option"
+                onClick={() => s.setVehicle('microbus-14')}
+                data-testid="vehicle-microbus"
+              >
+                <MicrobusSilhouette />
+                <span className="vehicle-option-name">{c.microbus}</span>
+                <span className="vehicle-option-seats">{c.microbusSeats}</span>
+              </button>
+              <button
+                type="button"
+                role="radio"
+                aria-checked={s.vehicleId === 'bus-49'}
+                className="vehicle-option"
+                onClick={() => s.setVehicle('bus-49')}
+                data-testid="vehicle-bus"
+              >
+                <BusSilhouette />
+                <span className="vehicle-option-name">{c.bus}</span>
+                <span className="vehicle-option-seats">{c.busSeats}</span>
+              </button>
+            </div>
+          </section>
+        </div>
+      </div>
+
+      <div className="trip-form-actions">
+        {errorText && (
+          <p className="form-error" role="alert" data-testid="form-error">
+            <IconInfo />
+            {errorText}
+          </p>
+        )}
+
         <button
           type="button"
-          className="swap-btn"
-          aria-label={c.swap}
-          onClick={() => {
-            s.swap();
-            setSwapTurns((t) => t + 1);
-          }}
-          style={{ rotate: `${swapTurns * 180}deg` }}
-          data-testid="swap-btn"
+          className={`cta${s.calculating ? ' is-calculating' : ''}`}
+          disabled={s.calculating}
+          onClick={() => void s.calculate()}
+          data-testid="calculate-btn"
         >
-          <IconSwap />
-        </button>
-      </section>
-
-      {s.origin?.kind !== 'gps' && (
-        <button type="button" className="btn btn-outline locate-btn" onClick={useMyLocation} disabled={gps === 'locating'} data-testid="locate-btn">
-          <IconLocate />
-          {gps === 'locating' ? c.locating : c.useMyLocation}
-        </button>
-      )}
-      {gps === 'denied' && <p className="locate-error" role="alert">{c.gpsDenied}</p>}
-
-      <section className="date-line" aria-label={c.when}>
-        <p className="section-label">{c.when}</p>
-        <div className="date-row">
-          <label className="ink-input">
-            <span className="ink-input-label">{c.date}</span>
-            <span className="ink-input-value">{formatDay(s.departure, s.lang)}</span>
-            <input
-              type="date"
-              value={parts.date}
-              onChange={(e) => {
-                const next = fromCairo(e.target.value, parts.time);
-                if (next) s.setDeparture(next);
-              }}
-              onClick={openPicker}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter' || e.key === ' ') {
-                  openPicker(e);
-                }
-              }}
-              data-testid="date-input"
-              aria-label={c.date}
-            />
-          </label>
-          <label className="ink-input">
-            <span className="ink-input-label">{c.time}</span>
-            <span className="ink-input-value">{formatTime(s.departure, s.lang)}</span>
-            <input
-              type="time"
-              value={parts.time}
-              onChange={(e) => {
-                const next = fromCairo(parts.date, e.target.value);
-                if (next) s.setDeparture(next);
-              }}
-              onClick={openPicker}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter' || e.key === ' ') {
-                  openPicker(e);
-                }
-              }}
-              data-testid="time-input"
-              aria-label={c.time}
-            />
-          </label>
-        </div>
-        <div className="pill-grid">
-          <button type="button" className="pill" aria-pressed={s.isNow} onClick={s.setNow} data-testid="time-now">
-            {c.now}
-          </button>
-          <button type="button" className="pill" aria-pressed={false} onClick={() => shiftFromNow(30)} data-testid="time-plus-30">
-            {c.in30}
-          </button>
-          <button type="button" className="pill" aria-pressed={false} onClick={tomorrow} data-testid="time-tomorrow">
-            {c.tomorrow}
-          </button>
-        </div>
-      </section>
-
-      <section aria-label={c.vehicle}>
-        <p className="section-label">{c.vehicle}</p>
-        <div className="vehicle-choice" role="radiogroup" aria-label={c.vehicle}>
-          <button
-            type="button"
-            role="radio"
-            aria-checked={s.vehicleId === 'microbus-14'}
-            className="vehicle-option"
-            onClick={() => s.setVehicle('microbus-14')}
-            data-testid="vehicle-microbus"
-          >
-            <MicrobusSilhouette />
-            <span className="vehicle-option-name">{c.microbus}</span>
-            <span className="vehicle-option-seats">{c.microbusSeats}</span>
-          </button>
-          <button
-            type="button"
-            role="radio"
-            aria-checked={s.vehicleId === 'bus-49'}
-            className="vehicle-option"
-            onClick={() => s.setVehicle('bus-49')}
-            data-testid="vehicle-bus"
-          >
-            <BusSilhouette />
-            <span className="vehicle-option-name">{c.bus}</span>
-            <span className="vehicle-option-seats">{c.busSeats}</span>
-          </button>
-        </div>
-      </section>
-
-      {errorText && (
-        <p className="form-error" role="alert" data-testid="form-error">
-          <IconInfo />
-          {errorText}
-        </p>
-      )}
-
-      <button
-        type="button"
-        className={`cta${s.calculating ? ' is-calculating' : ''}`}
-        disabled={s.calculating}
-        onClick={() => void s.calculate()}
-        data-testid="calculate-btn"
-      >
-        {s.calculating ? (
-          <span className="cta-calculating-content">
-            <span className="cta-mini-vehicle">
-              {s.vehicleId === 'bus-49' ? <BusSilhouette /> : <MicrobusSilhouette />}
+          {s.calculating ? (
+            <span className="cta-calculating-content">
+              <span className="cta-mini-vehicle">
+                {s.vehicleId === 'bus-49' ? <BusSilhouette /> : <MicrobusSilhouette />}
+              </span>
+              <span className="cta-sun-icon">
+                <SunDot size={18} />
+              </span>
+              <span>{c.ctaBusy}</span>
             </span>
-            <span className="cta-sun-icon">
-              <SunDot size={18} />
-            </span>
-            <span>{c.ctaBusy}</span>
-          </span>
-        ) : (
-          c.cta
+          ) : (
+            c.cta
+          )}
+          {s.calculating && <span className="cta-progress-line" />}
+        </button>
+
+        {s.calculating && (
+          <p className="cta-calc-hint" aria-live="polite">
+            ☀️ {c.loaderQuotes[hintIndex]}
+          </p>
         )}
-        {s.calculating && <span className="cta-progress-line" />}
-      </button>
-
-      {s.calculating && (
-        <p className="cta-calc-hint" aria-live="polite">
-          ☀️ {c.loaderQuotes[hintIndex]}
-        </p>
-      )}
+      </div>
 
       {picker && (
         <PlacePicker
