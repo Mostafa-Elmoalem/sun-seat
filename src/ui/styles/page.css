@@ -88,6 +88,66 @@
   color: var(--graphite);
 }
 
+.footer a {
+  color: var(--ink);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.footer-author {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-top: 14px;
+  padding-top: 12px;
+  border-top: 1px dashed var(--grid-strong);
+}
+
+.footer-author-text {
+  font-size: 13px;
+  color: var(--text);
+}
+
+.footer-author-name {
+  color: var(--ink);
+  font-weight: 700;
+}
+
+.footer-author-links {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.footer-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 32px;
+  padding: 4px 10px;
+  border-radius: var(--radius-sm);
+  background: var(--ink-wash);
+  color: var(--ink) !important;
+  font-size: 12px;
+  font-weight: 600;
+  text-decoration: none !important;
+  border: 1px solid transparent;
+  transition: background-color 140ms var(--ease-out), border-color 140ms var(--ease-out);
+}
+
+.footer-badge:hover,
+.footer-badge:focus-visible {
+  background: var(--ink-press);
+  border-color: var(--ink-soft);
+}
+
+.footer-badge .icon {
+  width: 14px;
+  height: 14px;
+}
+
 .toast {
   position: fixed;
   inset-inline: 16px;

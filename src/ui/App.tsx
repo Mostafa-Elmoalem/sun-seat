@@ -4,7 +4,7 @@ import { useTripStore } from './hooks/use-trip-store.ts';
 import { COPY } from './i18n/copy.ts';
 import { TripForm } from './features/trip-form/TripForm.tsx';
 import { ResultView } from './features/result/ResultView.tsx';
-import { BrandMark, IconOffline } from './shared/Icons.tsx';
+import { BrandMark, IconGitHub, IconLinkedIn, IconOffline } from './shared/Icons.tsx';
 import { useNetworkStatus } from './hooks/use-network-status.ts';
 import { registerServiceWorker } from '../adapters/pwa-register.ts';
 
@@ -85,6 +85,35 @@ export function App() {
             </a>
           </p>
         )}
+        <div className="footer-author" data-testid="developer-attribution">
+          <span className="footer-author-text">
+            {c.craftedBy} <strong className="footer-author-name">{c.developerName}</strong>
+          </span>
+          <div className="footer-author-links">
+            <a
+              href="https://www.linkedin.com/in/mostafa-elmoalem/"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="footer-badge"
+              aria-label="LinkedIn - Mostafa Elmoalem"
+              data-testid="link-linkedin"
+            >
+              <IconLinkedIn />
+              <span>LinkedIn</span>
+            </a>
+            <a
+              href="https://github.com/Mostafa-Elmoalem"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="footer-badge"
+              aria-label="GitHub - Mostafa Elmoalem"
+              data-testid="link-github"
+            >
+              <IconGitHub />
+              <span>GitHub</span>
+            </a>
+          </div>
+        </div>
       </footer>
 
       {toast && (

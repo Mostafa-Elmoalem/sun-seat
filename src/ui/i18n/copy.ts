@@ -193,7 +193,9 @@ export const COPY = {
     busCurtains: 'الأتوبيس فيه ستاير غالبا، بس الجنب اللي فيه شمس هيفضل أحر.',
     newVersion: 'فيه نسخة جديدة من الموقع',
     update: 'حدّث',
-    calcYours: 'احسب مشوارك إنت'
+    calcYours: 'احسب مشوارك إنت',
+    craftedBy: 'فكرة وبرمجة',
+    developerName: 'مصطفى المعلم'
   },
   en: {
     brand: 'Sit Where?',
@@ -375,7 +377,9 @@ export const COPY = {
     busCurtains: 'Coaches usually have curtains, but the sunny side still runs hotter.',
     newVersion: 'A new version is available',
     update: 'Update',
-    calcYours: 'Check your own trip'
+    calcYours: 'Check your own trip',
+    craftedBy: 'Built by',
+    developerName: 'Mostafa Elmoalem'
   }
 } as const;
 
